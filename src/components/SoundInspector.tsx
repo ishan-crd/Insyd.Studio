@@ -5,7 +5,8 @@ import { seek } from "../lib/player";
 import { useAudioInfo, drawWave } from "../lib/audio";
 import { NumberField, BoolField } from "./Fields";
 import { useSoundClips, SoundPicker } from "./AudioTracks";
-import { Music, Waveform } from "../lib/icons";
+import { Music, Waveform, Play, Pause } from "../lib/icons";
+import { playPreview, stopPreview, usePreview } from "../lib/preview";
 
 export const SoundInspector: React.FC<{ id: string }> = ({ id }) => {
   const def = useStore((s) => s.def)!;
@@ -17,8 +18,12 @@ export const SoundInspector: React.FC<{ id: string }> = ({ id }) => {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [picking, setPicking] = useState(false);
   const store = useStore.getState;
-  useEffect(() => { if (canvas.current && info) drawWave(canvas.current, info, c?.kind === "music" ? "#B96BFF" : "#2FC5A8"); }, [info, c?.kind]);
+  const preview = usePreview();
+  const previewing = preview.id === id && preview.playing;
+  useEffect(() => { if (canvas.current && info) drawWave(canvas.current, info, c?.kind === "music" ? "#B96BFF" : "#2FC5A8", c?.trimStart ? c.trimStart / def.fps : 0, c ? c.frames / def.fps : undefined); }, [info, c?.kind, c?.trimStart, c?.frames, def.fps]);
+  useEffect(() => () => stopPreview(), [id]);
   if (!c) return <div className="empty"><b>Sound not found</b>{id}</div>;
+  const listen = () => playPreview(id, c.url, c.trimStart / def.fps, c.repeat > 1 ? undefined : c.frames / def.fps, c.volume);
   const o = layout.sounds[id] ?? {};
   const edited = Object.keys(o).length > 0 && !c.added;
   const setStart = (f: number, commit = true) => c.added ? store().setSound(id, { at: Math.max(0, Math.round(f)) }, commit) : store().setSound(id, { shift: Math.round(f) - c.natural }, commit);
@@ -29,8 +34,12 @@ export const SoundInspector: React.FC<{ id: string }> = ({ id }) => {
         <div><div style={{ fontWeight: 600, fontSize: 14 }}>{c.label}</div><div className="id">{id}{c.added ? " · added in the editor" : inCode ? "" : " · saved to layout.json"}</div></div>
       </div>
       <div style={{ padding: "8px 6px 0" }}>
-        <canvas ref={canvas} className="wave-full" />
-        <div className="hint" style={{ padding: "4px 2px" }}>{c.src}{info ? ` · ${info.duration.toFixed(2)}s` : " · decoding…"}{c.repeat > 1 ? ` · ×${c.repeat} every ${c.every}f` : ""}</div>
+        <div className={`wave-box ${previewing ? "playing" : ""}`} onClick={listen} title={previewing ? "Stop" : "Click to listen"} data-testid="wave-preview">
+          <canvas ref={canvas} className="wave-full" />
+          {previewing && <div className="wave-cursor" style={{ left: `${preview.progress * 100}%` }} />}
+          <div className="wave-play">{previewing ? <Pause /> : <Play />}</div>
+        </div>
+        <div className="hint" style={{ padding: "4px 2px" }}>{c.src}{info ? ` · ${info.duration.toFixed(2)}s` : " · decoding…"}{c.repeat > 1 ? ` · ×${c.repeat} every ${c.every}f` : ""} · click the waveform to listen</div>
       </div>
       <div className="section">File</div>
       <div style={{ padding: "0 6px", position: "relative" }}>
