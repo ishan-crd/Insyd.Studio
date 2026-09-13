@@ -52,3 +52,5 @@ export const Clipboard = () => <I d={["M9 4h6v3H9z", "M7 6H5v15h14V6h-2"]} />;
 export const Duplicate = () => <I d={["M8 8h12v12H8z", "M4 16V4h12", "M14 11v6M11 14h6"]} />;
 export const Trash = () => <I d={["M4 7h16", "M10 11v6M14 11v6", "M6 7l1 14h10l1-14", "M9 7V4h6v3"]} />;
 export const Mute = () => <I d={["M4 10v4h4l5 4V6L8 10z", "M17 9l4 6M21 9l-4 6"]} />;
+export const ClaudeMark = () => <I fill d="M12 2c.6 5.4 4.6 9.4 10 10-5.4.6-9.4 4.6-10 10-.6-5.4-4.6-9.4-10-10 5.4-.6 9.4-4.6 10-10z" />;
+export const Terminal = () => <I d={["M3 4h18v16H3z", "M7 9l3 3-3 3", "M12 15h5"]} />;

@@ -4,6 +4,15 @@ import { nextFrames, scanPlayerRef } from "./player";
 
 const cacheKey = () => { const d = useStore.getState().def!; return `insyd:scan5:${d.id}:${JSON.stringify(d.scenes)}:${__INSYD_PROJECT__}`; };
 let running = false;
+let inventoryChanged = false;
+/** Called with the code index; if the set of editable ids changed since the last scan, the cache is stale. */
+export const noteInventory = (locatorKeys: string[]) => {
+  const key = `insyd:inventory:${__INSYD_PROJECT__}`;
+  const h = String(locatorKeys.length) + ":" + locatorKeys.slice().sort().join("|").split("").reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  let prev: string | null = null;
+  try { prev = localStorage.getItem(key); localStorage.setItem(key, h); } catch {}
+  if (prev !== null && prev !== h) { inventoryChanged = true; const st = useStore.getState(); if (st.scan.status === "done") void scanProject(3, true); }
+};
 
 // Steps a *hidden* second Player through the composition and records when each Editable is on
 // screen — the visible player is never paused or seeked, so playback stays fully usable.
@@ -12,9 +21,10 @@ export const scanProject = async (step = 3, force = false) => {
   const s = useStore.getState();
   const player = scanPlayerRef.current;
   if (!player || !s.def || running) return;
-  if (!force) {
+  if (!force && !inventoryChanged) {
     try { const cached = localStorage.getItem(cacheKey()); if (cached) { const c = JSON.parse(cached); if (c.elements && c.sounds) { s.setScan({ status: "done", progress: 1, elements: c.elements, sounds: c.sounds }); return; } } } catch {}
   }
+  inventoryChanged = false;
   running = true;
   s.setScan({ status: "running", progress: 0 });
   try {

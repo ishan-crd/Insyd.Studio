@@ -12,6 +12,7 @@ import { bundle } from "@remotion/bundler";
 import { renderMedia, renderFrames, selectComposition, makeCancelSignal } from "@remotion/renderer";
 import crypto from "node:crypto";
 import { buildIndex, applyLayout } from "./codemod.mjs";
+import { buildBrief, writeClaudeMd } from "./context.mjs";
 
 const exec = promisify(execFile);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -156,6 +157,44 @@ app.post("/api/apply", async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message, stack: e.stack });
   }
+});
+
+// ---------- Claude Code hand-off ----------
+const findClaude = async () => {
+  try { const { stdout } = await exec("/bin/zsh", ["-lc", "command -v claude"]); return stdout.trim() || null; } catch { return null; }
+};
+const makeContext = (body) => {
+  const dir = process.env.INSYD_PROJECT;
+  const index = buildIndex(dir);
+  const brief = buildBrief({ dir, def: body.def, scan: body.scan, layout: body.layout, index, port: PORT });
+  const file = writeClaudeMd(dir, brief);
+  return { dir, brief, file };
+};
+// Regenerates CLAUDE.md and returns the brief (also used for "Copy context").
+app.post("/api/claude/context", (req, res) => {
+  if (!process.env.INSYD_PROJECT) return res.status(400).json({ error: "No project open" });
+  try { const { brief, file } = makeContext(req.body); res.json({ ok: true, brief, file: path.basename(file) }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+// Opens Terminal in the project and starts Claude Code with a kickoff prompt.
+app.post("/api/claude/open", async (req, res) => {
+  const dir = process.env.INSYD_PROJECT;
+  if (!dir) return res.status(400).json({ error: "No project open" });
+  try {
+    const { brief } = makeContext(req.body);
+    const claude = await findClaude();
+    if (!claude) return res.json({ ok: false, brief, reason: "claude-not-found" });
+    const kickoff = "You are connected to Studio by Insyd for this project: the editor is open and the person is watching it. Read the Studio section of CLAUDE.md first — it lists every scene, element, sound and editable value with its file. Changes you save under src/ show up in the editor within a second. Reply with one line confirming you have the context, then wait for instructions.";
+    const q = (s) => "'" + s.replace(/'/g, `'\\''`) + "'";
+    const cmd = `cd ${q(dir)} && clear && ${q(claude)} ${q(kickoff)}`;
+    const script = `tell application "Terminal"
+  activate
+  do script ${JSON.stringify(cmd)}
+end tell`;
+    if (req.body.dryRun) return res.json({ ok: true, brief, claude, cmd });
+    await exec("osascript", ["-e", script]);
+    res.json({ ok: true, brief });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ---------- audio files ----------

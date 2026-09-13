@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useStore } from "../state/store";
 import { saveToCode } from "../lib/persist";
 import { scanProject } from "../lib/scan";
-import { Export, Folder, Help, Logo, Redo, Refresh, Save, Undo, Wordmark } from "../lib/icons";
+import { Export, Folder, Help, Logo, Redo, Refresh, Save, Undo, Wordmark, ClaudeMark, Copy } from "../lib/icons";
+import { openInClaudeCode, copyClaudeContext } from "../lib/claude";
 import { ExportDialog } from "./ExportDialog";
 import { useShortcuts } from "./ShortcutsModal";
 
@@ -30,6 +31,10 @@ export const TopBar: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
         <Refresh /> {scan.status === "running" ? `Analyzing ${Math.round(scan.progress * 100)}%` : "Rescan"}
       </button>
       <div className="spacer" />
+      <div className="split">
+        <button className="btn" title="Open Terminal here and start Claude Code with the full Studio context (scenes, elements, sounds, editable values). Its edits appear live." onClick={openInClaudeCode}><ClaudeMark /> Open in Claude Code</button>
+        <button className="btn icon" title="Copy the same context to the clipboard (and write it to CLAUDE.md)" onClick={copyClaudeContext}><Copy /></button>
+      </div>
       <button className="btn ghost icon" title="Keyboard shortcuts (?)" onClick={() => useShortcuts.getState().set(true)}><Help /></button>
       <button className="btn" onClick={saveLayout} disabled={!dirty || saving} title="Write changes into the project's source files"><Save /> {saving ? "Saving…" : `Save${pendingCount ? ` ${pendingCount}` : ""}`} <span className="kbd">⌘S</span></button>
       <button className="btn primary" onClick={() => setExp(true)}><Export /> Export</button>

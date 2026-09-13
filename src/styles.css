@@ -278,3 +278,8 @@ input[type="number"] { font-family: var(--mono); font-size: 12px; }
 .wave-box:hover .wave-play, .wave-box.playing .wave-play { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 .wave-box .wave-cursor { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.8); pointer-events: none; }
 .wave-box.playing { box-shadow: 0 0 0 1px var(--accent); }
+
+.split { display: inline-flex; }
+.split .btn:first-child { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.split .btn:last-child { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: -1px; }
+.split .btn svg:first-child { color: #d97757; }

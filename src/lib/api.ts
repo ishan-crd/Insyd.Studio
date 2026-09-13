@@ -22,6 +22,8 @@ export const api = {
     post<{ id: string; outputLocation: string }>("/api/render", body),
   cancelRender: (id: string) => post("/api/render/" + id + "/cancel"),
   reveal: (path: string) => post("/api/reveal", { path }),
+  claudeContext: (body: unknown) => post<{ ok: true; brief: string; file: string }>("/api/claude/context", body),
+  claudeOpen: (body: unknown) => post<{ ok: boolean; brief: string; reason?: string }>("/api/claude/open", body),
   thumbs: (body: { compositionId: string; entryPoint: string; layoutFile: string; every?: number }) => post<{ status: "ready" | "running" | "error"; key: string; base: string; progress?: number; error?: string | null; every?: number; count?: number; width?: number; height?: number; files?: string[] }>("/api/thumbs", body),
   audioList: () => fetch("/api/audio/list").then((r) => j<{ files: { src: string; bytes: number }[] }>(r)),
   audioUpload: (name: string, data: string, folder = "sfx") => post<{ src: string }>("/api/audio/upload", { name, data, folder }),

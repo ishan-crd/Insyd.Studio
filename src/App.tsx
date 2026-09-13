@@ -6,6 +6,7 @@ import { loadDraft, saveDraft, popSession } from "./lib/persist";
 import { playerRef } from "./lib/player";
 import { registry } from "@project/sdk";
 import { ensureThumbs } from "./lib/thumbs";
+import { noteInventory } from "./lib/scan";
 import { OpenProject } from "./components/OpenProject";
 import { TopBar } from "./components/TopBar";
 import { Library } from "./components/Library";
@@ -31,7 +32,7 @@ export const App: React.FC = () => {
       useStore.getState().init(d, saved, draft);
       const n = draft ? (Object.values(draft) as unknown[]).filter((v) => v && typeof v === "object").reduce<number>((a, v) => a + Object.keys(v as object).length, 0) : 0;
       if (n) useStore.getState().setToast(`Restored ${n} unsaved change${n === 1 ? "" : "s"}`);
-      api.index().then((i) => useStore.getState().setIndex(i)).catch(() => {});
+      api.index().then((i) => { useStore.getState().setIndex(i); noteInventory(Object.keys(i.locators)); }).catch(() => {});
       setTimeout(ensureThumbs, 1500);
       // restore UI state after a save-reload
       const sess = popSession();

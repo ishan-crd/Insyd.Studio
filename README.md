@@ -39,6 +39,17 @@ Inspector). Unsaved edits survive reloads (restored as a draft) and `⌘Z` / `�
 **Export** renders exactly what you see to your Desktop with progress, then *Reveal in Finder*.
 `?` (key or top-bar button) opens the full shortcuts reference; `⌘A` selects every element (or every sound when a sound is selected); `⌘+` / `⌘−` / `⌘0` zoom the timeline; the lock icon on a scene header or on the Sound effects / Music lane locks everything on that track.
 
+## Open in Claude Code
+
+The **Open in Claude Code** button hands the whole project to Claude Code with Studio still watching:
+it writes a *Studio section* into the project's `CLAUDE.md` — the editing contract plus every scene,
+element, sound, text and editable value with its current value and file — opens Terminal in the
+project folder and starts `claude` with a kickoff prompt. Ask it things like *"reduce the volume of all
+whoosh clips to 10%"* or *"move the phone 40px left"*; it edits the source and **the preview reloads
+within a second**, keeping your playhead and selection. If it adds or removes elements or sounds, the
+timeline rescans itself. The copy button next to it puts the same brief on the clipboard (and in
+`CLAUDE.md`) for any other tool. Requires the `claude` CLI on your PATH.
+
 ## Making a Remotion project editable
 
 Insyd Studio edits what a project *declares*. The contract is one file copied into the project
@@ -116,6 +127,7 @@ node scripts/shortcuts.mjs    ⌘A, zoom shortcuts, shortcuts modal, track locks
 node scripts/snap.mjs         timeline + canvas snapping
 node scripts/thumbs.mjs       filmstrip thumbnails render, cache and load
 node scripts/preview.mjs      click-to-listen on the inspector waveform
+node scripts/claude.mjs       Claude Code hand-off: CLAUDE.md brief, live reload of external edits, auto-rescan
 node scripts/audio.mjs        audio tracks: drag/replace/volume/mute/add, save → code
 node scripts/playpause.mjs    play/pause through the real UI controls
 node scripts/perf.mjs    main-thread ms/frame during playback
