@@ -4,6 +4,7 @@ import { playerRef, seek } from "./player";
 import { saveToCode } from "./persist";
 import { usePlayback } from "../state/playback";
 import { registry } from "@project/sdk";
+import { copySounds, cutSounds, pasteSounds, duplicateSounds, splitSounds, deleteSounds, setSoundsLocked, soundClip, isSoundLocked } from "./clips";
 
 const typing = () => {
   const el = document.activeElement as HTMLElement | null;
@@ -20,6 +21,17 @@ export const useKeyboard = () => {
       if (meta && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? s.redo() : s.undo(); return; }
       if (typing()) return;
       const p = playerRef.current;
+      const soundSel = s.selection?.type === "sound";
+      if (meta && soundSel) {
+        const k = e.key.toLowerCase();
+        if (k === "c") { e.preventDefault(); copySounds(); return; }
+        if (k === "x") { e.preventDefault(); cutSounds(); return; }
+        if (k === "d") { e.preventDefault(); duplicateSounds(); return; }
+        if (k === "k") { e.preventDefault(); splitSounds(); return; }
+        if (k === "l") { e.preventDefault(); const ids = s.selectedIds(); const all = ids.every((id) => isSoundLocked(id)); setSoundsLocked(ids, !all); return; }
+      }
+      if (meta && e.key.toLowerCase() === "v") { e.preventDefault(); pasteSounds(); return; }
+      if (soundSel && !meta && (e.key === "m" || e.key === "M")) { e.preventDefault(); const sid = (s.selection as { id: string }).id; const cur = s.layout.sounds[sid]?.muted ?? soundClip(sid)?.muted ?? false; s.setSounds(Object.fromEntries(s.selectedIds().map((id) => [id, { muted: !cur }]))); return; }
       const sel = s.selection?.type === "element" ? s.selection.id : null;
       const snd = s.selection?.type === "sound" ? s.selection.id : null;
       const sndIds = () => (s.multi.length ? s.multi : snd ? [snd] : []);
@@ -32,7 +44,7 @@ export const useKeyboard = () => {
         case "b": case "B": if (!meta) s.select({ type: "brand" }); break;
         case "Backspace": case "Delete":
           if (sel) { e.preventDefault(); const hide = !s.transform(sel).hidden; s.updateElements(Object.fromEntries(s.selectedIds().map((id) => [id, { hidden: hide }]))); }
-          else if (snd) { e.preventDefault(); const cur = s.layout.sounds[snd]?.muted ?? false; s.setSounds(Object.fromEntries(sndIds().map((id) => [id, { muted: !cur }]))); }
+          else if (snd) { e.preventDefault(); deleteSounds(sndIds()); }
           break;
         case "ArrowLeft": case "ArrowRight": case "ArrowUp": case "ArrowDown": {
           e.preventDefault();

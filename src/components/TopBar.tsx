@@ -50,6 +50,9 @@ export const TopBar: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
           <div><span>Constrain drag to axis</span><span className="kbd">⇧ drag</span></div>
           <div><span>Add to / toggle selection</span><span><span className="kbd">⇧ click</span><span className="kbd">⌘ click</span></span></div>
           <div><span>Box-select clips in the timeline</span><span className="kbd">drag empty space</span></div>
+          <div><span>Cut / copy / paste at playhead</span><span><span className="kbd">⌘X</span><span className="kbd">⌘C</span><span className="kbd">⌘V</span></span></div>
+          <div><span>Duplicate / split at playhead / lock</span><span><span className="kbd">⌘D</span><span className="kbd">⌘K</span><span className="kbd">⌘L</span></span></div>
+          <div><span>Mute selected sounds</span><span className="kbd">M</span></div>
         </div>
       )}
     </div>

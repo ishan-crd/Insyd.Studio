@@ -2,7 +2,7 @@ import { registry } from "@project/sdk";
 import { useStore, sceneAt, type ScanElement, type ScanSound } from "../state/store";
 import { nextFrames, scanPlayerRef } from "./player";
 
-const cacheKey = () => { const d = useStore.getState().def!; return `insyd:scan3:${d.id}:${JSON.stringify(d.scenes)}:${__INSYD_PROJECT__}`; };
+const cacheKey = () => { const d = useStore.getState().def!; return `insyd:scan4:${d.id}:${JSON.stringify(d.scenes)}:${__INSYD_PROJECT__}`; };
 let running = false;
 
 // Steps a *hidden* second Player through the composition and records when each Editable is on

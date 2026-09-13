@@ -34,6 +34,12 @@ export type SoundOverride = {
   muted?: boolean;
   /** replacement file, relative to public/ (or an absolute URL) */
   src?: string;
+  /** frames into the file to start from (trim in) */
+  trimStart?: number;
+  /** frames to play (trim out); undefined = to the end of the file */
+  duration?: number | null;
+  /** editor-only: cannot be moved or edited until unlocked */
+  locked?: boolean;
   /** a sound created in the editor (no code counterpart) — rendered by <LayoutSounds/> */
   added?: boolean; at?: number; label?: string; kind?: SoundKind; loop?: boolean;
 };
@@ -250,8 +256,9 @@ export type SoundEntry = {
   /** effective shift (override or code default) */
   shift: number;
   volume: number; muted: boolean; repeat: number; every: number; loop: boolean;
+  trimStart: number; duration: number | null; locked: boolean;
   /** defaults as written in the code */
-  defaults: { shift: number; volume: number; muted: boolean; src: string };
+  defaults: { shift: number; volume: number; muted: boolean; src: string; trimStart: number; duration: number | null; locked: boolean };
   added: boolean;
 };
 const soundChannels: Record<Channel, { sounds: Map<string, SoundEntry>; listeners: Set<Listener>; snapshot: SoundEntry[]; scheduled: boolean }> = {
@@ -427,6 +434,12 @@ export type SoundProps = {
   repeat?: number;
   every?: number;
   loop?: boolean;
+  /** frames into the file to start from */
+  trimStart?: number;
+  /** frames to play; omit to play to the end */
+  duration?: number;
+  /** editor-only lock (no effect on rendering) */
+  locked?: boolean;
   /** editor-added sound */
   added?: boolean;
 };
@@ -435,11 +448,14 @@ export type SoundProps = {
  * An editable sound. Plays `src` at `at` (+ `shift`); the editor can re-time, replace, re-level
  * and mute it, and shows it as a clip on the audio tracks.
  */
-export const Sound: React.FC<SoundProps> = ({ id, src, at = 0, volume = 1, muted = false, shift = 0, label, kind = "sfx", repeat = 1, every = 2, loop = false, added = false }) => {
+export const Sound: React.FC<SoundProps> = ({ id, src, at = 0, volume = 1, muted = false, shift = 0, label, kind = "sfx", repeat = 1, every = 2, loop = false, trimStart = 0, duration, locked = false, added = false }) => {
   const layout = useContext(LayoutContext);
   const channel = useChannel();
   const o = layout.sounds?.[id] ?? {};
-  const eff = { src: o.src ?? src, volume: o.volume ?? volume, muted: o.muted ?? muted, shift: o.shift ?? shift };
+  const eff = {
+    src: o.src ?? src, volume: o.volume ?? volume, muted: o.muted ?? muted, shift: o.shift ?? shift,
+    trimStart: o.trimStart ?? trimStart, duration: o.duration === undefined ? (duration ?? null) : o.duration, locked: o.locked ?? locked,
+  };
   const start = at + eff.shift;
   const local = useCurrentFrame();
   const timeline = Internals.useTimelinePosition();
@@ -449,16 +465,17 @@ export const Sound: React.FC<SoundProps> = ({ id, src, at = 0, volume = 1, muted
     if (!channel) return;
     registry.reportSound({
       id, label: label ?? id, kind, src: eff.src, url, absStart, shift: eff.shift, volume: eff.volume, muted: eff.muted, repeat, every, loop,
-      defaults: { shift, volume, muted, src }, added,
+      trimStart: eff.trimStart, duration: eff.duration, locked: eff.locked,
+      defaults: { shift, volume, muted, src, trimStart, duration: duration ?? null, locked }, added,
     }, channel);
-  }, [channel, id, label, kind, eff.src, url, absStart, eff.shift, eff.volume, eff.muted, repeat, every, loop, shift, volume, muted, src, added]);
+  }, [channel, id, label, kind, eff.src, url, absStart, eff.shift, eff.volume, eff.muted, eff.trimStart, eff.duration, eff.locked, repeat, every, loop, shift, volume, muted, src, trimStart, duration, locked, added]);
   useLayoutEffect(() => () => { if (channel) registry.removeSound(id, channel); }, [channel, id]);
   if (eff.muted || eff.volume <= 0) return null;
   return (
     <>
       {Array.from({ length: Math.max(1, repeat) }).map((_, i) => (
-        <Sequence key={i} from={start + i * every} layout="none" name={`sound:${id}`}>
-          <Audio src={url} volume={eff.volume} loop={loop} />
+        <Sequence key={i} from={start + i * every} durationInFrames={eff.duration ?? undefined} layout="none" name={`sound:${id}`}>
+          <Audio src={url} volume={eff.volume} loop={loop} startFrom={eff.trimStart || undefined} />
         </Sequence>
       ))}
     </>
@@ -471,7 +488,7 @@ export const LayoutSounds: React.FC = () => {
   return (
     <>
       {Object.entries(layout.sounds ?? {}).filter(([, o]) => o.added && o.src).map(([id, o]) => (
-        <Sound key={id} id={id} src={o.src!} at={o.at ?? 0} volume={o.volume ?? 0.8} muted={o.muted} label={o.label ?? o.src} kind={o.kind ?? "sfx"} loop={o.loop} added />
+        <Sound key={id} id={id} src={o.src!} at={o.at ?? 0} volume={o.volume ?? 0.8} muted={o.muted} label={o.label ?? o.src} kind={o.kind ?? "sfx"} loop={o.loop} trimStart={o.trimStart} duration={o.duration ?? undefined} locked={o.locked} added />
       ))}
     </>
   );

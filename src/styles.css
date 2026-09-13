@@ -219,3 +219,22 @@ input[type="number"] { font-family: var(--mono); font-size: 12px; }
 /* rubber-band selection */
 .marquee { position: absolute; border: 1px solid var(--accent); background: rgba(124,140,255,0.14); border-radius: 3px; pointer-events: none; z-index: 5; }
 .tl, .tl * { user-select: none; -webkit-user-select: none; }
+
+/* context menu */
+.ctx { position: fixed; z-index: 80; background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 10px; box-shadow: var(--shadow); padding: 6px; }
+.ctx-item { display: flex; align-items: center; gap: 10px; width: 100%; height: 28px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--text); cursor: pointer; text-align: left; font-size: 12.5px; }
+.ctx-item:hover:not(:disabled) { background: var(--accent-soft); }
+.ctx-item:disabled { opacity: 0.4; cursor: default; }
+.ctx-item.danger { color: var(--danger); }
+.ctx-item .ctx-ico { width: 16px; display: grid; place-items: center; color: var(--text-2); font-size: 11px; }
+.ctx-item .ctx-ico svg { width: 14px; height: 14px; }
+.ctx-item .ctx-label { flex: 1; }
+.ctx-sep { height: 1px; background: var(--line); margin: 5px 4px; }
+/* sound clip trim handles + lock */
+.aclip .trim { position: absolute; top: 0; bottom: 0; width: 6px; cursor: ew-resize; opacity: 0; }
+.aclip .trim.l { left: 0; } .aclip .trim.r { right: 0; }
+.aclip:hover .trim, .aclip.on .trim { opacity: 1; background: linear-gradient(to right, rgba(255,255,255,0.35), transparent); }
+.aclip .trim.r { background: linear-gradient(to left, rgba(255,255,255,0.35), transparent); }
+.aclip.locked { cursor: default; }
+.aclip.locked::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 6px, rgba(0,0,0,0.18) 6px 8px); pointer-events: none; }
+.alabel .lk { display: inline-grid; place-items: center; } .alabel .lk svg { width: 10px; height: 10px; }

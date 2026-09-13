@@ -27,7 +27,7 @@ Then **Browse…** to a project folder (or paste its path) and **Open project**.
 | **Inspector → Animation** | Every `useAnim()` entrance: delay, motion (spring presets / custom physics / bezier), and the *from* values (x, y, scale, opacity, rotation, blur), with a live curve preview. |
 | **Scene** (click a scene block or "Scene settings") | Duration, plus scene-level properties such as panel colours and wipe lengths. |
 | **Brand** tab | Global tokens declared with `brand()`: palette, backgrounds, fonts. Change one and every scene follows. |
-| **Audio** (bottom of the timeline) | Every `<Sound>` as a clip with its waveform: sound effects packed into lanes above the **Music** lane. Drag a clip to re-time it (`⇧`-click to move several together), click it to edit **volume**, **mute**, **start**, or **Replace…** the file with any audio in `public/` or an upload. **+ Sound** drops a new file at the playhead. Saved as `shift` / `volume` / `muted` / `src` props on the `<Sound>` in code; added sounds live in `layout.json` and play everywhere via `<LayoutSounds/>`. |
+| **Audio** (bottom of the timeline) | Every `<Sound>` as a clip with its waveform: sound effects packed into lanes above the **Music** lane. Drag a clip to re-time it (`⇧`-click to move several together), click it to edit **volume**, **mute**, **start**, or **Replace…** the file with any audio in `public/` or an upload. **+ Sound** drops a new file at the playhead. Right-click any sound clip (or use `⌘C/⌘X/⌘V/⌘D/⌘K/⌘L`, `M`, `⌫`) to copy, cut, paste at the playhead (relative offsets kept), duplicate, split at the playhead, mute, lock or delete; drag a clip's edges to trim it. Saved as `shift` / `volume` / `muted` / `src` props on the `<Sound>` in code; added sounds live in `layout.json` and play everywhere via `<LayoutSounds/>`. |
 | **Timeline** | *Scenes* track pinned under the ruler: drag a scene's right edge to trim it. One clip per element: drag to shift it in time; drag the bright bar inside a clip to re-time that element's entrance. **`⇧`-click clips to select several (`⌘`-click toggles), or drag a selection box on empty track space like on the desktop (`⇧` adds), then drag any of them to slide the whole group.** Ruler scrubs; zoom; resizable. |
 
 `⌘S` **saves into the source**: literals are rewritten in place (`edit("id", 108)` → `edit("id", 140)`,
@@ -108,6 +108,7 @@ node scripts/e2e.mjs     browser end-to-end test (33 checks incl. save → sourc
 node scripts/multiselect.mjs  multi-select + group move (timeline and canvas)
 node scripts/marquee.mjs      rubber-band selection in the timeline
 node scripts/groupedit.mjs    group inspector: shared fields, edits applied to every selected item
+node scripts/clips.mjs        sound clip vocabulary: menu, split, trim, copy/paste, duplicate, delete, lock
 node scripts/audio.mjs        audio tracks: drag/replace/volume/mute/add, save → code
 node scripts/playpause.mjs    play/pause through the real UI controls
 node scripts/perf.mjs    main-thread ms/frame during playback

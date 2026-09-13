@@ -12,6 +12,7 @@ import { Preview } from "./components/Preview";
 import { Inspector } from "./components/Inspector";
 import { Timeline } from "./components/Timeline";
 import { useKeyboard } from "./lib/keyboard";
+import { ContextMenuHost } from "./components/ContextMenu";
 
 export const App: React.FC = () => {
   const ready = useStore((s) => s.def !== null);
@@ -73,6 +74,7 @@ export const App: React.FC = () => {
       <Preview />
       <Inspector />
       <Timeline />
+      <ContextMenuHost />
       {toast && <div className="toast">{toast}</div>}
     </div>
   );

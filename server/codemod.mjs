@@ -12,8 +12,8 @@ import MagicString from "magic-string";
 const CALLS = new Set(["edit", "brand", "useCopy", "useAnim", "useAnimSpec", "useSceneDuration"]);
 const TRANSFORM_KEYS = ["x", "y", "scale", "rotate", "opacity", "hidden", "delay"];
 const SOUND_TAGS = new Set(["Sound", "Sfx", "KeyTicks"]);
-const SOUND_KEYS = ["shift", "volume", "muted", "src"];
-const SOUND_DEFAULTS = { shift: 0, muted: false };
+const SOUND_KEYS = ["shift", "volume", "muted", "src", "trimStart", "duration", "locked"];
+const SOUND_DEFAULTS = { shift: 0, muted: false, trimStart: 0, locked: false };
 const TRANSFORM_DEFAULTS = { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1, hidden: false, delay: 0 };
 
 export const listSourceFiles = (dir) => {
@@ -160,7 +160,7 @@ export const applyLayout = (dir, layout) => {
     if (!e || o.added) { unresolved.sounds[id] = o; continue; }
     for (const k of SOUND_KEYS) {
       if (o[k] === undefined) continue;
-      const isDefault = SOUND_DEFAULTS[k] !== undefined && o[k] === SOUND_DEFAULTS[k];
+      const isDefault = o[k] === null || (SOUND_DEFAULTS[k] !== undefined && o[k] === SOUND_DEFAULTS[k]);
       const text = isDefault ? "" : o[k] === true ? ` ${k}` : typeof o[k] === "string" ? ` ${k}=${JSON.stringify(o[k])}` : ` ${k}={${toLiteral(o[k])}}`;
       const cur = e.attrs[k];
       if (cur) push(e.file, cur.start - 1, cur.end, text);

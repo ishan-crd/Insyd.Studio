@@ -5,7 +5,9 @@ import { usePlayback } from "../state/playback";
 import { seek } from "../lib/player";
 import { useAudioInfo, drawWave, peekAudioInfo, getAudioInfo } from "../lib/audio";
 import { api } from "../lib/api";
-import { Chevron, Music, Plus, Upload, Waveform as WaveIcon } from "../lib/icons";
+import { Chevron, Lock, Music, Plus, Upload, Waveform as WaveIcon, Copy, Clipboard as ClipIcon, Duplicate, Scissors, Trash, Mute, Unlock } from "../lib/icons";
+import { setCurrentSoundClips, trimSound, copySounds, cutSounds, pasteSounds, duplicateSounds, splitSounds, deleteSounds, setSoundsLocked, getClipboard, isSoundLocked } from "../lib/clips";
+import { openMenu, type MenuItem } from "./ContextMenu";
 
 export const ROW_AUDIO = 30;
 export const ROW_MUSIC = 40;
@@ -15,7 +17,8 @@ const COLORS: Record<SoundKind, string> = { sfx: "#2FC5A8", music: "#B96BFF", vo
 export type SoundClip = {
   id: string; label: string; kind: SoundKind; start: number; frames: number; url: string; src: string;
   volume: number; muted: boolean; repeat: number; every: number; added: boolean; shift: number; natural: number;
-  defaults: { shift: number; volume: number; muted: boolean; src: string };
+  trimStart: number; duration: number | null; locked: boolean; fileFrames: number;
+  defaults: { shift: number; volume: number; muted: boolean; src: string; trimStart: number; duration: number | null; locked: boolean };
 };
 
 export const useSoundClips = (): SoundClip[] => {
@@ -38,11 +41,16 @@ export const useSoundClips = (): SoundClip[] => {
       const natural = s.added ? (o.at ?? 0) : s.natural;
       const shift = s.added ? 0 : (o.shift ?? l?.shift ?? s.defaults.shift);
       const info = peekAudioInfo(url);
-      const one = info ? Math.max(1, Math.round(info.duration * def.fps)) : 12;
+      const fileFrames = info ? Math.max(1, Math.round(info.duration * def.fps)) : 12;
+      const trimStart = o.trimStart ?? l?.trimStart ?? s.defaults.trimStart ?? 0;
+      const duration = o.duration === undefined ? (l?.duration ?? s.defaults.duration ?? null) : o.duration;
+      const one = Math.max(1, duration ?? (fileFrames - trimStart));
       const frames = (s.repeat - 1) * s.every + one;
-      out.push({ id: s.id, label: o.label ?? s.label, kind: (o.kind ?? s.kind) as SoundKind, start: natural + shift, frames, url, src, volume: o.volume ?? l?.volume ?? s.defaults.volume, muted: o.muted ?? l?.muted ?? s.defaults.muted, repeat: s.repeat, every: s.every, added: s.added, shift, natural, defaults: s.defaults });
+      out.push({ id: s.id, label: o.label ?? s.label, kind: (o.kind ?? s.kind) as SoundKind, start: natural + shift, frames, url, src, volume: o.volume ?? l?.volume ?? s.defaults.volume, muted: o.muted ?? l?.muted ?? s.defaults.muted, repeat: s.repeat, every: s.every, added: s.added, shift, natural, trimStart, duration, locked: o.locked ?? l?.locked ?? s.defaults.locked ?? false, fileFrames, defaults: s.defaults });
     }
-    return out.sort((a, b) => a.start - b.start);
+    const sorted = out.sort((a, b) => a.start - b.start);
+    setCurrentSoundClips(sorted);
+    return sorted;
   }, [scanSounds, live, layout.sounds, liveById, def.fps]);
   // decode any file we have not seen yet and re-render when it lands
   useEffect(() => {
@@ -66,29 +74,61 @@ export const packLanes = (clips: SoundClip[], maxLanes = 6) => {
   return lanes;
 };
 
-const Wave: React.FC<{ url: string; color: string; frames: number; fps: number; repeat: number; every: number }> = ({ url, color, frames, fps, repeat, every }) => {
+const Wave: React.FC<{ url: string; color: string; frames: number; fps: number; repeat: number; every: number; trimStart?: number }> = ({ url, color, frames, fps, repeat, every, trimStart = 0 }) => {
   const info = useAudioInfo(url);
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     if (!ref.current || !info) return;
     const c = ref.current;
-    const draw = () => { if (repeat > 1) { drawWave(c, info, color, 0, frames / fps); } else drawWave(c, info, color); };
+    const draw = () => { if (repeat > 1) drawWave(c, info, color, 0, frames / fps); else drawWave(c, info, color, trimStart / fps, frames / fps); };
     draw();
     const ro = new ResizeObserver(draw); ro.observe(c); return () => ro.disconnect();
-  }, [info, color, frames, fps, repeat, every]);
+  }, [info, color, frames, fps, repeat, every, trimStart]);
   return <canvas ref={ref} style={{ position: "absolute", inset: "3px 0", width: "100%", height: "calc(100% - 6px)", opacity: 0.85, pointerEvents: "none" }} />;
 };
 
-export const SoundClipView: React.FC<{ c: SoundClip; ppf: number; on: boolean; onPointerDown: (e: React.PointerEvent) => void; row: number }> = ({ c, ppf, on, onPointerDown, row }) => {
+export const soundMenu = (ids: string[], frame: number, clips: SoundClip[]): MenuItem[] => {
+  const sel = clips.filter((c) => ids.includes(c.id));
+  const n = sel.length, locked = sel.some((c) => isSoundLocked(c.id)), allLocked = n > 0 && sel.every((c) => isSoundLocked(c.id)), muted = n > 0 && sel.every((c) => c.muted);
+  const canSplit = sel.some((c) => !isSoundLocked(c.id) && c.repeat === 1 && frame > c.start + 1 && frame < c.start + c.frames - 1);
+  const store = useStore.getState;
+  return [
+    { label: "Cut", icon: <Scissors />, kbd: "⌘X", onClick: () => cutSounds(ids), disabled: !n || locked },
+    { label: "Copy", icon: <Copy />, kbd: "⌘C", onClick: () => copySounds(ids), disabled: !n },
+    { label: "Paste at playhead", icon: <ClipIcon />, kbd: "⌘V", onClick: () => pasteSounds(), disabled: getClipboard()?.type !== "sound" },
+    { label: "Duplicate", icon: <Duplicate />, kbd: "⌘D", onClick: () => duplicateSounds(ids), disabled: !n },
+    { label: "Split at playhead", icon: <Scissors />, kbd: "⌘K", onClick: () => splitSounds(frame, ids), disabled: !canSplit },
+    { sep: true, label: "" },
+    { label: muted ? "Unmute" : "Mute", icon: <Mute />, kbd: "M", onClick: () => store().setSounds(Object.fromEntries(ids.map((id) => [id, { muted: !muted }]))), disabled: !n || locked },
+    { label: allLocked ? "Unlock" : "Lock", icon: allLocked ? <Unlock /> : <Lock />, kbd: "⌘L", onClick: () => setSoundsLocked(ids, !allLocked), disabled: !n },
+    { sep: true, label: "" },
+    { label: n > 1 ? `Delete ${n} sounds` : "Delete", icon: <Trash />, kbd: "⌫", onClick: () => deleteSounds(ids), disabled: !n || locked, danger: true },
+  ];
+};
+
+export const SoundClipView: React.FC<{ c: SoundClip; ppf: number; on: boolean; onPointerDown: (e: React.PointerEvent) => void; row: number; drag: (e: React.PointerEvent, onMove: (dx: number, ev: PointerEvent) => void, onUp?: (moved: boolean) => void) => void; clips: SoundClip[] }> = ({ c, ppf, on, onPointerDown, row, drag, clips }) => {
   const def = useStore((s) => s.def)!;
   const color = COLORS[c.kind] ?? COLORS.sfx;
   const store = useStore.getState;
+  const trim = (e: React.PointerEvent, edge: "l" | "r") => {
+    if (e.button !== 0 || c.locked) return;
+    e.stopPropagation();
+    if (!selectedOf("sound").includes(c.id)) store().select({ type: "sound", id: c.id });
+    store().begin();
+    const snapshot = { ...c };
+    drag(e, (dx) => trimSound(snapshot, edge, Math.round(dx / ppf), false), () => store().end());
+  };
+  const onCtx = (e: React.MouseEvent) => {
+    if (!selectedOf("sound").includes(c.id)) store().select({ type: "sound", id: c.id });
+    openMenu(e, soundMenu(selectedOf("sound"), usePlayback.getState().frame, clips));
+  };
   return (
-    <div className={`aclip ${on ? "on" : ""} ${c.muted ? "muted" : ""}`} data-clip-id={c.id} data-clip-kind="snd" style={{ left: c.start * ppf, width: Math.max(6, c.frames * ppf - 1), top: 3, height: row - 6, ["--clip" as any]: color }}
-      onPointerDown={onPointerDown} onMouseEnter={() => store().setHover(null)}
-      title={`${c.label} · ${c.src} · starts f${c.start} · ${(c.frames / def.fps).toFixed(2)}s · vol ${Math.round(c.volume * 100)}%${c.muted ? " · muted" : ""}${c.shift ? ` · shift ${c.shift}` : ""} — drag to move`}>
-      <Wave url={c.url} color={color} frames={c.frames} fps={def.fps} repeat={c.repeat} every={c.every} />
-      {c.frames * ppf > 46 && <span className="alabel">{c.label}<span className="avol">{Math.round(c.volume * 100)}%</span>{c.shift !== 0 && <span className="delay">{c.shift > 0 ? "+" : ""}{c.shift}f</span>}</span>}
+    <div className={`aclip ${on ? "on" : ""} ${c.muted ? "muted" : ""} ${c.locked ? "locked" : ""}`} data-clip-id={c.id} data-clip-kind="snd" style={{ left: c.start * ppf, width: Math.max(6, c.frames * ppf - 1), top: 3, height: row - 6, ["--clip" as any]: color }}
+      onPointerDown={onPointerDown} onContextMenu={onCtx} onMouseEnter={() => store().setHover(null)}
+      title={`${c.label} · ${c.src} · starts f${c.start} · ${(c.frames / def.fps).toFixed(2)}s · vol ${Math.round(c.volume * 100)}%${c.muted ? " · muted" : ""}${c.locked ? " · locked" : ""}${c.shift ? ` · shift ${c.shift}` : ""}${c.trimStart ? ` · trim ${c.trimStart}f` : ""} — drag to move · edges trim · right-click for more`}>
+      <Wave url={c.url} color={color} frames={c.frames} fps={def.fps} repeat={c.repeat} every={c.every} trimStart={c.trimStart} />
+      {c.frames * ppf > 46 && <span className="alabel">{c.locked && <span className="lk"><Lock /></span>}{c.label}<span className="avol">{Math.round(c.volume * 100)}%</span>{c.shift !== 0 && <span className="delay">{c.shift > 0 ? "+" : ""}{c.shift}f</span>}</span>}
+      {c.repeat === 1 && !c.locked && c.frames * ppf >= 28 && <><div className="trim l" onPointerDown={(e) => trim(e, "l")} title="Trim start" /><div className="trim r" onPointerDown={(e) => trim(e, "r")} title="Trim end" /></>}
     </div>
   );
 };
@@ -142,7 +182,8 @@ export const useAudioRows = (
     const additive = e.shiftKey || e.metaKey || e.ctrlKey;
     if (additive && store().selection?.type === "sound") store().addToSelection(c.id, e.metaKey || e.ctrlKey);
     else if (!selectedOf("sound").includes(c.id)) store().select({ type: "sound", id: c.id });
-    const ids = selectedOf("sound");
+    const ids = selectedOf("sound").filter((id) => !isSoundLocked(id));
+    if (!ids.length) return;
     const base = Object.fromEntries(clips.filter((x) => ids.includes(x.id)).map((x) => [x.id, x]));
     store().begin();
     drag(e, (dx) => {
@@ -168,11 +209,11 @@ export const useAudioRows = (
   if (!collapsed) {
     lanes.forEach((lane, i) => {
       names.push(<div key={"l" + i} className="trow" style={{ height: ROW_AUDIO }}><div className="tname" style={{ height: ROW_AUDIO }}><WaveIcon />{i === 0 ? "Sound effects" : ""}<span style={{ marginLeft: "auto", color: "var(--text-3)", fontSize: 10 }}>{i + 1}</span></div></div>);
-      rows.push(<div key={"l" + i} className="trow" style={{ height: ROW_AUDIO }} onPointerDown={scrub}>{lane.map((c) => <SoundClipView key={c.id} c={c} ppf={ppf} on={isOn(c.id)} row={ROW_AUDIO} onPointerDown={(e) => dragSound(e, c)} />)}</div>);
+      rows.push(<div key={"l" + i} className="trow" style={{ height: ROW_AUDIO }} onPointerDown={scrub} onContextMenu={(e) => openMenu(e, soundMenu([], usePlayback.getState().frame, clips))}>{lane.map((c) => <SoundClipView key={c.id} c={c} ppf={ppf} on={isOn(c.id)} row={ROW_AUDIO} onPointerDown={(e) => dragSound(e, c)} drag={drag} clips={clips} />)}</div>);
     });
-    if (!lanes.length) { names.push(<div key="l0" className="trow" style={{ height: ROW_AUDIO }}><div className="tname" style={{ height: ROW_AUDIO }}><WaveIcon />Sound effects</div></div>); rows.push(<div key="l0" className="trow" style={{ height: ROW_AUDIO }} onPointerDown={scrub} />); }
+    if (!lanes.length) { names.push(<div key="l0" className="trow" style={{ height: ROW_AUDIO }}><div className="tname" style={{ height: ROW_AUDIO }}><WaveIcon />Sound effects</div></div>); rows.push(<div key="l0" className="trow" style={{ height: ROW_AUDIO }} onPointerDown={scrub} onContextMenu={(e) => openMenu(e, soundMenu([], usePlayback.getState().frame, clips))} />); }
     names.push(<div key="m" className="trow" style={{ height: ROW_MUSIC }}><div className="tname" style={{ height: ROW_MUSIC }}><Music />Music</div></div>);
-    rows.push(<div key="m" className="trow" style={{ height: ROW_MUSIC }} onPointerDown={scrub}>{music.map((c) => <SoundClipView key={c.id} c={c} ppf={ppf} on={isOn(c.id)} row={ROW_MUSIC} onPointerDown={(e) => dragSound(e, c)} />)}</div>);
+    rows.push(<div key="m" className="trow" style={{ height: ROW_MUSIC }} onPointerDown={scrub} onContextMenu={(e) => openMenu(e, soundMenu([], usePlayback.getState().frame, clips))}>{music.map((c) => <SoundClipView key={c.id} c={c} ppf={ppf} on={isOn(c.id)} row={ROW_MUSIC} onPointerDown={(e) => dragSound(e, c)} drag={drag} clips={clips} />)}</div>);
   }
   return { names, rows };
 };

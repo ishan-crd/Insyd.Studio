@@ -43,7 +43,7 @@ check("sound clips highlighted", (await page.$$(".aclip.on")).length === s.multi
 // group drag of the marquee-selected sounds
 const before = await page.evaluate((ids) => ids.map((id) => (window.__insydStore.getState().layout.sounds[id]?.shift ?? 0)), s.multi);
 const one = await page.$(`.aclip.on`); const ob = await one.boundingBox();
-await dragMouse(ob.x + 2, ob.y + ob.height / 2, ob.x + 2 + 30, ob.y + ob.height / 2);
+await dragMouse(ob.x + ob.width / 2, ob.y + ob.height / 2, ob.x + ob.width / 2 + 30, ob.y + ob.height / 2);
 const after = await page.evaluate((ids) => ids.map((id) => (window.__insydStore.getState().layout.sounds[id]?.shift ?? 0)), s.multi);
 check("dragging one of them moves the whole marquee selection", after.every((v, i) => v - before[i] === after[0] - before[0]) && after[0] - before[0] > 3, `Δ=${after[0] - before[0]}`);
 

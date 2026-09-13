@@ -39,18 +39,18 @@ check("inspector shows the sound panel (file, volume, timing)", /Music bed/.test
 const whooshes = await page.$$('.aclip[title^="Whoosh"]');
 check("several whoosh clips exist", whooshes.length >= 5, `${whooshes.length}`);
 const w0 = await whooshes[0].boundingBox(); const t0 = await whooshes[0].getAttribute("title");
-await page.mouse.click(w0.x + 3, w0.y + w0.height / 2); await page.waitForTimeout(150);
+await page.mouse.click(w0.x + w0.width / 2, w0.y + w0.height / 2); await page.waitForTimeout(150);
 s = await S(); const wid = s.sel?.id;
-await dragMouse(w0.x + 3, w0.y + w0.height / 2, w0.x + 3 + 30, w0.y + w0.height / 2);
+await dragMouse(w0.x + w0.width / 2, w0.y + w0.height / 2, w0.x + w0.width / 2 + 30, w0.y + w0.height / 2);
 s = await S(); const sh = s.sounds[wid]?.shift;
 check("dragging a sound clip shifts it", typeof sh === "number" && sh > 5, `${wid} shift=${sh}`);
 check("selection stays on the sound after drag", s.sel?.id === wid);
 // shift-click a second clip and drag → both move
 const w1 = await whooshes[1].boundingBox();
-await page.keyboard.down("Shift"); await page.mouse.click(w1.x + 3, w1.y + w1.height / 2); await page.keyboard.up("Shift"); await page.waitForTimeout(150);
+await page.keyboard.down("Shift"); await page.mouse.click(w1.x + w1.width / 2, w1.y + w1.height / 2); await page.keyboard.up("Shift"); await page.waitForTimeout(150);
 s = await S(); check("⇧-click multi-selects sounds", s.multi.length === 2, JSON.stringify(s.multi));
 const before = { ...s.sounds };
-await dragMouse(w1.x + 3, w1.y + w1.height / 2, w1.x + 3 + 20, w1.y + w1.height / 2);
+await dragMouse(w1.x + w1.width / 2, w1.y + w1.height / 2, w1.x + w1.width / 2 + 20, w1.y + w1.height / 2);
 s = await S();
 const d0 = (s.sounds[s.multi[0]]?.shift ?? 0) - (before[s.multi[0]]?.shift ?? 0), d1 = (s.sounds[s.multi[1]]?.shift ?? 0) - (before[s.multi[1]]?.shift ?? 0);
 check("group drag moves both sounds by the same frames", d0 > 0 && d0 === d1, `Δ=${d0},${d1}`);

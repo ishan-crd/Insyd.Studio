@@ -44,3 +44,11 @@ export const Waveform = () => <I d={["M3 12h2", "M7 8v8", "M11 5v14", "M15 9v6",
 export const Plus = () => <I d={["M12 5v14", "M5 12h14"]} />;
 export const Upload = () => <I d={["M12 16V4", "M7 9l5-5 5 5", "M4 20h16"]} />;
 export const VolumeIcon = () => <I d={["M4 10v4h4l5 4V6L8 10z", "M16 9a4 4 0 0 1 0 6"]} />;
+export const Lock = () => <I d={["M6 11V8a6 6 0 0 1 12 0v3", "M5 11h14v10H5z"]} />;
+export const Unlock = () => <I d={["M6 11V8a6 6 0 0 1 11.5-2.3", "M5 11h14v10H5z"]} />;
+export const Scissors = () => <I d={["M6 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", "M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", "M20 4L8.1 15.9", "M14.5 14.5L20 20", "M8.1 8.1l3.4 3.4"]} />;
+export const Copy = () => <I d={["M9 9h11v11H9z", "M5 15H4V4h11v1"]} />;
+export const Clipboard = () => <I d={["M9 4h6v3H9z", "M7 6H5v15h14V6h-2"]} />;
+export const Duplicate = () => <I d={["M8 8h12v12H8z", "M4 16V4h12", "M14 11v6M11 14h6"]} />;
+export const Trash = () => <I d={["M4 7h16", "M10 11v6M14 11v6", "M6 7l1 14h10l1-14", "M9 7V4h6v3"]} />;
+export const Mute = () => <I d={["M4 10v4h4l5 4V6L8 10z", "M17 9l4 6M21 9l-4 6"]} />;

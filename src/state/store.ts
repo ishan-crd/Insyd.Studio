@@ -5,7 +5,7 @@ import { DEFAULT_TRANSFORM, mergeLayout, emptyLayout, projectDuration, sceneDura
 export type Selection = { type: "element"; id: string } | { type: "scene"; id: string } | { type: "brand" } | { type: "sound"; id: string } | null;
 export type ScanElement = { id: string; label: string; kind: ElementKind; first: number; last: number; sceneId: string };
 /** a sound discovered by the scan, at its natural (unshifted) absolute start */
-export type ScanSound = { id: string; label: string; kind: SoundKind; natural: number; repeat: number; every: number; defaults: { shift: number; volume: number; muted: boolean; src: string }; added: boolean };
+export type ScanSound = { id: string; label: string; kind: SoundKind; natural: number; repeat: number; every: number; defaults: { shift: number; volume: number; muted: boolean; src: string; trimStart: number; duration: number | null; locked: boolean }; added: boolean };
 export type SceneSpan = { id: string; label: string; from: number; duration: number; index: number };
 export type CodeIndex = { locators: Record<string, { file: string; literal: boolean }> };
 
