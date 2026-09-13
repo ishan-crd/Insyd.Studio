@@ -468,6 +468,9 @@ export type SoundProps = {
   duration?: number;
   /** editor-only lock (no effect on rendering) */
   locked?: boolean;
+  /** frames to fade in from silence / out to silence */
+  fadeIn?: number;
+  fadeOut?: number;
   /** editor-added sound */
   added?: boolean;
 };
@@ -476,7 +479,7 @@ export type SoundProps = {
  * An editable sound. Plays `src` at `at` (+ `shift`); the editor can re-time, replace, re-level
  * and mute it, and shows it as a clip on the audio tracks.
  */
-export const Sound: React.FC<SoundProps> = ({ id, src, at = 0, volume = 1, muted = false, shift = 0, label, kind = "sfx", repeat = 1, every = 2, loop = false, trimStart = 0, duration, locked = false, added = false }) => {
+export const Sound: React.FC<SoundProps> = ({ id, src, at = 0, volume = 1, muted = false, shift = 0, label, kind = "sfx", repeat = 1, every = 2, loop = false, trimStart = 0, duration, locked = false, fadeIn = 0, fadeOut = 0, added = false }) => {
   const layout = useContext(LayoutContext);
   const channel = useChannel();
   const o = layout.sounds?.[id] ?? {};
@@ -499,11 +502,20 @@ export const Sound: React.FC<SoundProps> = ({ id, src, at = 0, volume = 1, muted
   }, [channel, id, label, kind, eff.src, url, absStart, eff.shift, eff.volume, eff.muted, eff.trimStart, eff.duration, eff.locked, repeat, every, loop, shift, volume, muted, src, trimStart, duration, locked, added]);
   useLayoutEffect(() => () => { if (channel) registry.removeSound(id, channel); }, [channel, id]);
   if (eff.muted || eff.volume <= 0) return null;
+  const total = eff.duration ?? null;
+  const vol = fadeIn || (fadeOut && total)
+    ? (f: number) => {
+        let v = eff.volume;
+        if (fadeIn) v *= Math.min(1, Math.max(0, f / fadeIn));
+        if (fadeOut && total) v *= Math.min(1, Math.max(0, (total - f) / fadeOut));
+        return v;
+      }
+    : eff.volume;
   return (
     <>
       {Array.from({ length: Math.max(1, repeat) }).map((_, i) => (
         <Sequence key={i} from={start + i * every} durationInFrames={eff.duration ?? undefined} layout="none" name={`sound:${id}`}>
-          <Audio src={url} volume={eff.volume} loop={loop} startFrom={eff.trimStart || undefined} />
+          <Audio src={url} volume={vol} loop={loop} startFrom={eff.trimStart || undefined} />
         </Sequence>
       ))}
     </>
