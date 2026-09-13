@@ -2,7 +2,7 @@ import { registry } from "@project/sdk";
 import { useStore, sceneAt, type ScanElement, type ScanSound } from "../state/store";
 import { nextFrames, scanPlayerRef } from "./player";
 
-const cacheKey = () => { const d = useStore.getState().def!; return `insyd:scan4:${d.id}:${JSON.stringify(d.scenes)}:${__INSYD_PROJECT__}`; };
+const cacheKey = () => { const d = useStore.getState().def!; return `insyd:scan5:${d.id}:${JSON.stringify(d.scenes)}:${__INSYD_PROJECT__}`; };
 let running = false;
 
 // Steps a *hidden* second Player through the composition and records when each Editable is on
@@ -36,7 +36,15 @@ export const scanProject = async (step = 3, force = false) => {
       }
       if (f % (step * 10) === 0) useStore.getState().setScan({ progress: f / duration });
     }
-    const elements = Array.from(found.values()).map((e) => ({ ...e, last: Math.min(e.last, duration - 1) })).sort((a, b) => a.first - b.first || a.id.localeCompare(b.id));
+    // Refine first/last to the exact frame (the coarse pass quantizes to `step`).
+    const present = async (f: number, id: string) => { player.seekTo(f); await nextFrames(2); return registry.getElements("scan").some((e) => e.id === id); };
+    for (const e of found.values()) {
+      for (let d = 1; d < step; d++) { const f = e.first - d; if (f < 0 || !(await present(f, e.id))) break; e.first = f; }
+      let last = Math.min(e.last, duration - 1);
+      while (last > e.first && !(await present(last, e.id))) last--;
+      e.last = last;
+    }
+    const elements = Array.from(found.values()).sort((a, b) => a.first - b.first || a.id.localeCompare(b.id));
     const soundList = Array.from(sounds.values()).sort((a, b) => a.natural - b.natural || a.id.localeCompare(b.id));
     useStore.getState().setScan({ status: "done", progress: 1, elements, sounds: soundList });
     try { localStorage.setItem(cacheKey(), JSON.stringify({ elements, sounds: soundList })); } catch {}

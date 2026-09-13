@@ -167,6 +167,13 @@ input[type="number"] { font-family: var(--mono); font-size: 12px; }
 .clip:hover { border-color: var(--text-3); color: var(--text); }
 .clip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
 .clip.hidden-el { opacity: 0.4; border-style: dashed; }
+.clip .trim { position: absolute; top: 0; bottom: 0; width: 6px; cursor: ew-resize; opacity: 0; }
+.clip .trim.l { left: 0; } .clip .trim.r { right: 0; }
+.clip:hover .trim, .clip.on .trim { opacity: 1; background: linear-gradient(to right, rgba(255,255,255,0.35), transparent); }
+.clip .trim.r { background: linear-gradient(to left, rgba(255,255,255,0.35), transparent); }
+.clip.locked { cursor: default; background-image: repeating-linear-gradient(135deg, transparent 0 6px, rgba(0,0,0,0.18) 6px 8px); }
+.clip.clone { border-style: dashed; }
+.clip > span > svg { width: 10px; height: 10px; vertical-align: -1px; margin-right: 4px; }
 .clip .anim { position: absolute; bottom: 2px; height: 4px; border-radius: 3px; background: var(--accent); opacity: 0.9; cursor: ew-resize; box-shadow: 0 0 0 1px rgba(0,0,0,0.35); }
 .clip .anim:hover { height: 6px; bottom: 1px; }
 .clip .delay { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--accent); padding-left: 6px; }

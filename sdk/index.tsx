@@ -23,8 +23,14 @@ export type ElementTransform = {
   x: number; y: number; scale: number; rotate: number; opacity: number; hidden: boolean;
   /** frames to shift this element's animation later (negative = earlier) */
   delay: number;
+  /** visibility window in the element's own frames: hidden before trimIn / after trimOut (null = open) */
+  trimIn: number; trimOut: number | null;
+  /** editor-only: cannot be moved or edited until unlocked */
+  locked: boolean;
+  /** a linked instance of another Editable created in the editor (renders the same content) */
+  cloneOf?: string;
 };
-export const DEFAULT_TRANSFORM: ElementTransform = { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1, hidden: false, delay: 0 };
+export const DEFAULT_TRANSFORM: ElementTransform = { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1, hidden: false, delay: 0, trimIn: 0, trimOut: null, locked: false };
 
 export type SoundKind = "sfx" | "music" | "voice";
 export type SoundOverride = {
@@ -237,6 +243,8 @@ export type ElementEntry = {
   /** the defaults written in the code (<Editable x={…}>) */
   defaults: Partial<ElementTransform>;
   copyId?: string;
+  /** set on linked instances */
+  cloneOf?: string;
 };
 
 type Listener = () => void;
@@ -362,51 +370,71 @@ export type EditableProps = Partial<ElementTransform> & {
 export const Editable: React.FC<EditableProps> = ({ id, label, kind = "block", copyId, children, style, display = "inline", ...defaults }) => {
   const layout = useContext(LayoutContext);
   const t: ElementTransform = { ...DEFAULT_TRANSFORM, ...stripUndefined(defaults), ...(layout.elements[id] ?? {}) };
-  const body = (
+  // Linked instances created in the editor. They share this element's place in the layout (the
+  // shell below) but are independent siblings of the original: their own transform, timing and
+  // visibility, and they survive the original being trimmed out or hidden.
+  const clones = Object.entries(layout.elements).filter(([, o]) => o.cloneOf === id);
+  const shellBase: React.CSSProperties =
+    display === "fill" ? { position: "absolute", inset: 0 }
+    : display === "block" ? { position: "relative", width: "100%" }
+    : { position: "relative", width: "fit-content" };
+  const fill = display !== "inline" || !!style?.position;
+  const withDelay = (key: string, delay: number, node: React.ReactNode) =>
+    delay !== 0 ? <Sequence key={key} from={delay} layout="none" name={`delay:${key}`}>{node}</Sequence> : <React.Fragment key={key}>{node}</React.Fragment>;
+  return (
     <OwnerContext.Provider value={id}>
-      <EditableBody id={id} label={label ?? id} kind={kind} copyId={copyId} t={t} defaults={stripUndefined(defaults)} style={style} display={display}>
-        {children}
-      </EditableBody>
+      <div style={{ ...shellBase, ...style, transform: undefined, opacity: undefined }} data-insyd-shell={id}>
+        {withDelay(id, t.delay,
+          <EditableBody id={id} label={label ?? id} kind={kind} copyId={copyId} t={t} defaults={stripUndefined(defaults)} fill={fill}>
+            {children}
+          </EditableBody>)}
+        {clones.map(([cid, o]) => {
+          const ct: ElementTransform = { ...DEFAULT_TRANSFORM, ...o };
+          return withDelay(cid, ct.delay,
+            <div style={{ position: "absolute", inset: 0, visibility: "visible" }}>
+              <EditableBody id={cid} label={`${label ?? id} (copy)`} kind={kind} copyId={copyId} t={ct} defaults={{}} fill cloneOf={id}>
+                {children}
+              </EditableBody>
+            </div>);
+        })}
+      </div>
     </OwnerContext.Provider>
   );
-  if (t.delay !== 0) {
-    return <Sequence from={t.delay} layout="none" name={`delay:${id}`}>{body}</Sequence>;
-  }
-  return body;
 };
 
 const stripUndefined = <T extends object>(o: T): Partial<T> => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 
 const EditableBody: React.FC<{
   id: string; label: string; kind: ElementKind; copyId?: string; t: ElementTransform; defaults: Partial<ElementTransform>;
-  style?: React.CSSProperties; display: "inline" | "block" | "fill"; children: React.ReactNode;
-}> = ({ id, label, kind, copyId, t, defaults, style, display, children }) => {
+  fill: boolean; children: React.ReactNode; cloneOf?: string;
+}> = ({ id, label, kind, copyId, t, defaults, fill, children, cloneOf }) => {
   const channel = useChannel();
   const editor = channel !== null;
   const ref = useRef<HTMLDivElement>(null);
+  const frame = useCurrentFrame();
   const defaultsKey = JSON.stringify(defaults);
-  // Register on mount and whenever identity/transform changes — not every frame.
+  // outside its visibility window the element keeps its layout footprint but is invisible and absent from the editor
+  const inWindow = frame >= t.trimIn && (t.trimOut === null || t.trimOut === undefined || frame <= t.trimOut);
   useLayoutEffect(() => {
     if (!channel || !ref.current) return;
-    registry.reportElement({ id, label, kind, el: ref.current, transform: t, defaults, copyId }, channel);
-  }, [channel, id, label, kind, copyId, defaultsKey, t.x, t.y, t.scale, t.rotate, t.opacity, t.hidden, t.delay]);
+    if (!inWindow) { registry.removeElement(id, channel); return; }
+    registry.reportElement({ id, label, kind, el: ref.current, transform: t, defaults, copyId, cloneOf }, channel);
+  }, [channel, id, label, kind, copyId, cloneOf, defaultsKey, t.x, t.y, t.scale, t.rotate, t.opacity, t.hidden, t.delay, t.trimIn, t.trimOut, t.locked, inWindow]);
   useLayoutEffect(() => () => { if (channel) registry.removeElement(id, channel); }, [channel, id]);
 
-  if (t.hidden && !editor) return null;
-  const base: React.CSSProperties =
-    display === "fill" ? { position: "absolute", inset: 0 }
-    : display === "block" ? { position: "relative", width: "100%" }
-    : { position: "relative", width: "fit-content" };
+  const gone = !inWindow || (t.hidden && !editor);
   return (
     <div
       ref={ref}
       data-insyd-id={id}
       style={{
-        ...base,
+        position: "relative",
+        ...(fill ? { width: "100%", height: "100%" } : {}),
         transform: `translate(${t.x}px, ${t.y}px) rotate(${t.rotate}deg) scale(${t.scale})`,
         transformOrigin: "50% 50%",
-        opacity: t.hidden ? (editor ? 0.15 : 0) : t.opacity,
-        ...style,
+        opacity: t.hidden && editor && inWindow ? 0.15 : t.opacity,
+        visibility: gone ? "hidden" : "visible",
+        pointerEvents: gone ? "none" : undefined,
       }}
     >
       {children}

@@ -58,7 +58,7 @@ export const Inspector: React.FC = () => {
     const id = selection.id;
     const t = store().transform(id);
     const live = elements.find((e) => e.id === id);
-    const meta = scan.elements.find((e) => e.id === id);
+    const meta = store().allElements().find((e) => e.id === id);
     const kind = live?.kind ?? meta?.kind ?? "block";
     const copyId = kind === "text" ? live?.copyId ?? id : null;
     const copyProp = copyId ? props.find((p) => p.id === copyId && p.kind === "text") : null;
@@ -94,7 +94,9 @@ export const Inspector: React.FC = () => {
         </div>
         <div className="section">Timing</div>
         <div className="field"><label>Shift</label><NumberField unit="f" value={t.delay} step={1} onChange={(d, c) => upd({ delay: Math.round(d) }, c)} /></div>
-        {meta && <div className="hint">On screen from frame {meta.first + t.delay} to {meta.last + t.delay} ({seconds(meta.last - meta.first + 1, def.fps)}). Positive shift = later.</div>}
+        <div className="field"><label>Visible from</label><div className="pair"><NumberField unit="f" value={t.trimIn} step={1} min={0} onChange={(v, c) => upd({ trimIn: Math.max(0, Math.round(v)) }, c)} /><NumberField unit="to" value={t.trimOut ?? (meta ? meta.last - meta.first : 0)} step={1} onChange={(v, c) => upd({ trimOut: Math.round(v) }, c)} /></div></div>
+        <div className="field"><label>Locked</label><BoolField value={t.locked} label={["Unlocked", "Locked"]} onChange={(v) => upd({ locked: v })} /></div>
+        {meta && <div className="hint">On screen from frame {meta.first + t.delay + t.trimIn} to {meta.first + t.delay + (t.trimOut ?? meta.last - meta.first)} ({seconds((t.trimOut ?? meta.last - meta.first) - t.trimIn + 1, def.fps)}). Positive shift = later; the visible window is in the element's own frames.{layout.elements[id]?.cloneOf ? ` Linked copy of ${layout.elements[id]!.cloneOf} — shares its content, saved in layout.json.` : ""}</div>}
         <PropGroups props={owned} />
         <div className="btnrow" style={{ marginTop: 6 }}>
           <button className="btn sm" onClick={() => { store().resetElement(id); owned.forEach((p) => store().resetProp(p.id)); if (copyId) { const s = store(); s.begin(); const copy = { ...s.layout.copy }; delete copy[copyId]; useStore.setState({ layout: { ...s.layout, copy } }); s.end(); } }}>Reset element</button>

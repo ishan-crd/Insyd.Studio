@@ -9,6 +9,9 @@ import { timecode } from "../lib/format";
 import { Block, Chevron, Eye, EyeOff, Image, Text } from "../lib/icons";
 import { propsOf } from "../lib/owners";
 import { useAudioRows } from "./AudioTracks";
+import { openMenu, type MenuItem } from "./ContextMenu";
+import { copyElements, cutElements, pasteClipboard, duplicateElements, splitElements, deleteElements, setElementsLocked, trimElement, isElementLocked, getClipboard } from "../lib/clips";
+import { Copy, Clipboard as ClipIcon, Duplicate, Scissors, Trash, Lock, Unlock, EyeOff as EyeOffIcon } from "../lib/icons";
 
 const ROW = { ruler: 28, scene: 40, grp: 24, el: 28 };
 const KindIcon: React.FC<{ kind: string }> = ({ kind }) => (kind === "text" ? <Text /> : kind === "image" ? <Image /> : <Block />);
@@ -35,6 +38,7 @@ export const Timeline: React.FC = () => {
   const layout = useStore((s) => s.layout);
   const codeDefaults = useStore((s) => s.codeDefaults);
   const scan = useStore((s) => s.scan);
+  const allElements = useStore((s) => s.allElements());
   const collapsed = useStore((s) => s.collapsed);
   const zoomMul = useStore((s) => s.zoom) ?? 1;
   const props = useProps();
@@ -145,7 +149,8 @@ export const Timeline: React.FC = () => {
     const additive = e.shiftKey || e.metaKey || e.ctrlKey;
     if (additive) store().addToSelection(id, e.metaKey || e.ctrlKey);
     else if (!store().selectedIds().includes(id)) store().select({ type: "element", id });
-    const ids = store().selectedIds();
+    const ids = store().selectedIds().filter((x) => !isElementLocked(x));
+    if (!ids.length) return;
     const base = Object.fromEntries(ids.map((x) => [x, store().transform(x).delay]));
     store().begin();
     drag(e, (dx) => {
@@ -170,10 +175,39 @@ export const Timeline: React.FC = () => {
 
   const elementIds = useMemo(() => scan.elements.map((e) => e.id), [scan.elements]);
   const audio = useAudioRows(ppf, trackDown, drag);
+  const elementMenu = (ids: string[]): MenuItem[] => {
+    const n = ids.length, frame = usePlayback.getState().frame;
+    const locked = ids.some(isElementLocked), allLocked = n > 0 && ids.every(isElementLocked);
+    const hidden = n > 0 && ids.every((id) => store().transform(id).hidden);
+    return [
+      { label: "Cut", icon: <Scissors />, kbd: "⌘X", onClick: () => cutElements(ids), disabled: !n || locked },
+      { label: "Copy", icon: <Copy />, kbd: "⌘C", onClick: () => copyElements(ids), disabled: !n },
+      { label: "Paste at playhead", icon: <ClipIcon />, kbd: "⌘V", onClick: () => pasteClipboard(), disabled: !getClipboard() },
+      { label: "Duplicate (linked copy)", icon: <Duplicate />, kbd: "⌘D", onClick: () => duplicateElements(ids), disabled: !n },
+      { label: "Split at playhead", icon: <Scissors />, kbd: "⌘K", onClick: () => splitElements(frame, ids), disabled: !n || locked },
+      { sep: true, label: "" },
+      { label: hidden ? "Show" : "Hide", icon: <EyeOffIcon />, kbd: "H", onClick: () => store().updateElements(Object.fromEntries(ids.map((id) => [id, { hidden: !hidden }]))), disabled: !n || locked },
+      { label: allLocked ? "Unlock" : "Lock", icon: allLocked ? <Unlock /> : <Lock />, kbd: "⌘L", onClick: () => setElementsLocked(ids, !allLocked), disabled: !n },
+      { sep: true, label: "" },
+      { label: n > 1 ? `Delete ${n} elements` : "Delete", icon: <Trash />, kbd: "⌫", onClick: () => deleteElements(ids), disabled: !n || locked, danger: true },
+    ];
+  };
+  const ctxElement = (e: React.MouseEvent, id: string) => {
+    if (!store().selectedIds().includes(id) || store().selection?.type !== "element") store().select({ type: "element", id });
+    openMenu(e, elementMenu(store().selectedIds()));
+  };
+  const trimClip = (e: React.PointerEvent, id: string, edge: "l" | "r") => {
+    if (e.button !== 0 || isElementLocked(id)) return;
+    e.stopPropagation();
+    if (!store().selectedIds().includes(id)) store().select({ type: "element", id });
+    const base = store().transform(id); store().begin();
+    drag(e, (dx) => trimElement(id, base, edge, Math.round(dx / ppf), false), () => store().end());
+  };
+
   const rows: React.ReactNode[] = [];
   const names: React.ReactNode[] = [];
   scenes.forEach((sc) => {
-    const els = scan.elements.filter((e) => e.sceneId === sc.id);
+    const els = allElements.filter((e) => e.sceneId === sc.id);
     if (!els.length) return;
     const open = !collapsed[sc.id];
     names.push(
@@ -181,32 +215,37 @@ export const Timeline: React.FC = () => {
         <Chevron open={open} /><span className="chip" style={{ background: sceneColor(sc.index) }} />{sc.label}<span style={{ marginLeft: "auto", fontWeight: 500 }}>{els.length}</span>
       </div></div>,
     );
-    rows.push(<div key={"g" + sc.id} className="trow grp" onPointerDown={trackDown} />);
+    rows.push(<div key={"g" + sc.id} className="trow grp" onPointerDown={trackDown} onContextMenu={(e) => openMenu(e, elementMenu([]))} />);
     if (!open) return;
     els.forEach((e) => {
-      const t = { delay: 0, hidden: false, ...(codeDefaults[e.id] ?? {}), ...(layout.elements[e.id] ?? {}) };
+      const t = { delay: 0, hidden: false, trimIn: 0, trimOut: null as number | null, locked: false, ...(codeDefaults[e.id] ?? {}), ...(layout.elements[e.id] ?? {}) };
       const on = multi.includes(e.id) || (selection?.type === "element" && selection.id === e.id);
       const anims = propsOf(props, e.id, elementIds).filter((p) => p.kind === "anim");
-      const clipStart = e.first + t.delay;
+      const len = e.last - e.first + 1;
+      const winEnd = t.trimOut ?? len - 1;
+      const clipStart = e.first + t.delay + t.trimIn;
+      const clipLen = Math.max(1, winEnd - t.trimIn + 1);
+      const isClone = !!(layout.elements[e.id]?.cloneOf);
       names.push(
-        <div key={e.id} className="trow" data-row={e.id}><div className={`tname ${on ? "on" : ""}`} style={{ height: ROW.el }} onMouseEnter={() => store().setHover(e.id)} onMouseLeave={() => store().setHover(null)} onClick={(ev) => (ev.shiftKey || ev.metaKey || ev.ctrlKey) ? store().addToSelection(e.id, ev.metaKey || ev.ctrlKey) : store().select({ type: "element", id: e.id })}>
-          <span style={{ display: "grid", placeItems: "center", opacity: 0.7 }}><KindIcon kind={e.kind} /></span>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{e.label}</span>
+        <div key={e.id} className="trow" data-row={e.id}><div className={`tname ${on ? "on" : ""}`} style={{ height: ROW.el }} onMouseEnter={() => store().setHover(e.id)} onMouseLeave={() => store().setHover(null)} onClick={(ev) => (ev.shiftKey || ev.metaKey || ev.ctrlKey) ? store().addToSelection(e.id, ev.metaKey || ev.ctrlKey) : store().select({ type: "element", id: e.id })} onContextMenu={(ev) => ctxElement(ev, e.id)}>
+          <span style={{ display: "grid", placeItems: "center", opacity: 0.7 }}>{t.locked ? <Lock /> : <KindIcon kind={e.kind} />}</span>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", fontStyle: isClone ? "italic" : undefined }}>{e.label}</span>
           <span className="eye" onClick={(ev) => { ev.stopPropagation(); store().updateElement(e.id, { hidden: !t.hidden }); }}>{t.hidden ? <EyeOff /> : <Eye />}</span>
         </div></div>,
       );
       rows.push(
-        <div key={e.id} className="trow" onPointerDown={trackDown}>
-          <div className={`clip ${on ? "on" : ""} ${t.hidden ? "hidden-el" : ""}`} data-clip-id={e.id} data-clip-kind="el"
-            style={{ left: clipStart * ppf, width: Math.max(6, (e.last - e.first + 1) * ppf - 1), ["--clip" as any]: sceneColor(sc.index) }}
-            onPointerDown={(ev) => dragClip(ev, e.id, e.first, e.last)}
+        <div key={e.id} className="trow" onPointerDown={trackDown} onContextMenu={(ev) => openMenu(ev, elementMenu([]))}>
+          <div className={`clip ${on ? "on" : ""} ${t.hidden ? "hidden-el" : ""} ${t.locked ? "locked" : ""} ${isClone ? "clone" : ""}`} data-clip-id={e.id} data-clip-kind="el"
+            style={{ left: clipStart * ppf, width: Math.max(6, clipLen * ppf - 1), ["--clip" as any]: sceneColor(sc.index) }}
+            onPointerDown={(ev) => dragClip(ev, e.id, e.first, e.last)} onContextMenu={(ev) => ctxElement(ev, e.id)}
             onMouseEnter={() => store().setHover(e.id)} onMouseLeave={() => store().setHover(null)}
-            title={`${e.label} · frames ${clipStart}–${e.last + t.delay}${t.delay ? ` · shift ${t.delay}` : ""}`}>
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{e.label}</span>
+            title={`${e.label} · frames ${clipStart}–${clipStart + clipLen - 1}${t.delay ? ` · shift ${t.delay}` : ""}${t.trimIn || t.trimOut !== null ? ` · window ${t.trimIn}–${winEnd}` : ""}${t.locked ? " · locked" : ""} — drag to move · edges trim · right-click for more`}>
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{t.locked && <Lock />}{e.label}</span>
             {t.delay !== 0 && <span className="delay">{t.delay > 0 ? "+" : ""}{t.delay}f</span>}
+            {!t.locked && clipLen * ppf >= 28 && <><div className="trim l" onPointerDown={(ev) => trimClip(ev, e.id, "l")} title="Trim start" /><div className="trim r" onPointerDown={(ev) => trimClip(ev, e.id, "r")} title="Trim end" /></>}
             {anims.map((p) => {
               const spec = { ...(p.value as AnimSpec), ...((layout.props[p.id] as AnimSpec | undefined) ?? {}) };
-              const a = (spec.delay ?? 0) * ppf, w = Math.max(4, animLength(spec, def.fps) * ppf);
+              const a = ((spec.delay ?? 0) - t.trimIn) * ppf, w = Math.max(4, animLength(spec, def.fps) * ppf);
               return (
                 <div key={p.id} className="anim" style={{ left: a, width: w }} title={`${p.meta.label ?? "Animation"} · starts +${spec.delay ?? 0}f · ${spec.preset ?? "smooth"} — drag to re-time`}
                   onPointerDown={(ev) => dragAnim(ev, p.id, spec, e.id, clipStart)} />

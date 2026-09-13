@@ -33,6 +33,7 @@ type State = {
   duration: () => number;
   scenes: () => SceneSpan[];
   transform: (id: string) => ElementTransform;
+  allElements: () => ScanElement[];
   dirty: () => boolean;
   /** overrides not yet persisted (layout minus saved) */
   pending: () => Layout;
@@ -103,6 +104,17 @@ export const useStore = create<State>((set, get) => ({
     });
   },
   transform: (id) => ({ ...DEFAULT_TRANSFORM, ...(get().codeDefaults[id] ?? {}), ...(get().layout.elements[id] ?? {}) }),
+  /** scan elements plus linked copies that exist in the layout (same scene/timing as their source) */
+  allElements: () => {
+    const { scan, layout } = get();
+    const out = [...scan.elements];
+    for (const [id, o] of Object.entries(layout.elements)) {
+      if (!o.cloneOf || out.some((e) => e.id === id)) continue;
+      const src = scan.elements.find((e) => e.id === o.cloneOf);
+      if (src) out.push({ ...src, id, label: `${src.label} (copy)` });
+    }
+    return out;
+  },
   dirty: () => !eq(get().layout, get().saved),
   pending: () => diffLayout(get().layout, get().saved),
 

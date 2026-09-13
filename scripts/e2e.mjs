@@ -73,7 +73,7 @@ check("color prop repaints the blue panel", panelBg === "rgb(14, 165, 233)", pan
 // ---- brand token
 await page.evaluate(() => window.__insydStore.getState().setProp("brand.paper", "#101418"));
 await page.waitForTimeout(250);
-const paperBg = await page.evaluate(() => { const els = [...document.querySelectorAll('[data-insyd-id="search.panel"]')]; const paper = els[0].parentElement.firstElementChild; return getComputedStyle(paper).backgroundColor; });
+const paperBg = await page.evaluate(() => { const shell = document.querySelector('[data-insyd-shell="search.panel"]'); const paper = shell.parentElement.firstElementChild; return getComputedStyle(paper).backgroundColor; });
 check("brand token (paper) changes the scene background", paperBg === "rgb(16, 20, 24)", paperBg);
 await page.evaluate(() => window.__insydStore.getState().resetProp("brand.paper"));
 

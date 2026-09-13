@@ -3,6 +3,9 @@ import { registry, useElements, type Rect } from "@project/sdk";
 import { useStore } from "../state/store";
 import { usePlayback } from "../state/playback";
 import { round } from "../lib/format";
+import { isElementLocked, copyElements, cutElements, pasteClipboard, duplicateElements, splitElements, deleteElements, setElementsLocked, getClipboard } from "../lib/clips";
+import { openMenu } from "./ContextMenu";
+import { Copy, Clipboard as ClipIcon, Duplicate, Scissors, Trash, Lock, Unlock, EyeOff } from "../lib/icons";
 
 const SNAP = 8; // composition px
 type Drag =
@@ -42,8 +45,8 @@ export const Overlay: React.FC<{ scale: number }> = ({ scale }) => {
     if (e.shiftKey || e.metaKey || e.ctrlKey) store().addToSelection(id, e.metaKey || e.ctrlKey);
     else if (!store().selectedIds().includes(id)) store().select({ type: "element", id });
     else useStore.setState({ selection: { type: "element", id } });
-    const ids = store().selectedIds();
-    if (!ids.includes(id)) return; // toggled off
+    const ids = store().selectedIds().filter((x) => !isElementLocked(x));
+    if (!ids.includes(id)) return; // toggled off or locked
     store().begin();
     const t = store().transform(id);
     const base = Object.fromEntries(ids.map((x) => { const tx = store().transform(x); return [x, { x: tx.x, y: tx.y }]; }));
@@ -96,6 +99,24 @@ export const Overlay: React.FC<{ scale: number }> = ({ scale }) => {
   return (
     <div ref={overlayEl} className="overlay" style={{ cursor: drag ? "grabbing" : hover ? "grab" : "default" }}
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onPointerLeave={() => !dragRef.current && store().setHover(null)}
+      onContextMenu={(e) => {
+        const id = registry.hitTest(e.clientX, e.clientY);
+        if (id && (!store().selectedIds().includes(id) || store().selection?.type !== "element")) store().select({ type: "element", id });
+        const ids = id ? store().selectedIds() : [];
+        const n = ids.length, locked = ids.some(isElementLocked), allLocked = n > 0 && ids.every(isElementLocked), hidden = n > 0 && ids.every((x) => store().transform(x).hidden);
+        openMenu(e, [
+          { label: "Cut", icon: <Scissors />, kbd: "⌘X", onClick: () => cutElements(ids), disabled: !n || locked },
+          { label: "Copy", icon: <Copy />, kbd: "⌘C", onClick: () => copyElements(ids), disabled: !n },
+          { label: "Paste at playhead", icon: <ClipIcon />, kbd: "⌘V", onClick: () => pasteClipboard(), disabled: !getClipboard() },
+          { label: "Duplicate (linked copy)", icon: <Duplicate />, kbd: "⌘D", onClick: () => duplicateElements(ids), disabled: !n },
+          { label: "Split at playhead", icon: <Scissors />, kbd: "⌘K", onClick: () => splitElements(undefined, ids), disabled: !n || locked },
+          { sep: true, label: "" },
+          { label: hidden ? "Show" : "Hide", icon: <EyeOff />, kbd: "H", onClick: () => store().updateElements(Object.fromEntries(ids.map((x) => [x, { hidden: !hidden }]))), disabled: !n || locked },
+          { label: allLocked ? "Unlock" : "Lock", icon: allLocked ? <Unlock /> : <Lock />, kbd: "⌘L", onClick: () => setElementsLocked(ids, !allLocked), disabled: !n },
+          { sep: true, label: "" },
+          { label: n > 1 ? `Delete ${n} elements` : "Delete", icon: <Trash />, kbd: "⌫", onClick: () => deleteElements(ids), disabled: !n || locked, danger: true },
+        ]);
+      }}
       onDoubleClick={(e) => { const id = registry.hitTest(e.clientX, e.clientY); const en = id && registry.getElement(id); if (en && en.kind === "text") document.getElementById("insp-text")?.focus(); }}>
       {guides.v && <div className="guide v" style={{ left: (def.width / 2) * scale }} />}
       {guides.h && <div className="guide h" style={{ top: (def.height / 2) * scale }} />}
@@ -107,8 +128,8 @@ export const Overlay: React.FC<{ scale: number }> = ({ scale }) => {
         const t = store().transform(id);
         return (
           <div key={id} className={`box ${sel ? "selected" : "hover"} ${t.hidden ? "hidden-el" : ""}`} style={{ left: r.x * scale, top: r.y * scale, width: r.w * scale, height: r.h * scale, pointerEvents: "none" }}>
-            <div className="tag">{en.label}<span className="k">{t.scale !== 1 ? `×${t.scale.toFixed(2)}` : `${Math.round(r.w)}×${Math.round(r.h)}`}</span></div>
-            {primary && selectedSet.size === 1 && ["nw", "ne", "sw", "se"].map((c) => <div key={c} className={`handle ${c}`} style={{ pointerEvents: "auto" }} onPointerDown={(e) => startScale(e, id)} />)}
+            <div className="tag">{t.locked ? "🔒 " : ""}{en.label}<span className="k">{t.scale !== 1 ? `×${t.scale.toFixed(2)}` : `${Math.round(r.w)}×${Math.round(r.h)}`}</span></div>
+            {primary && !t.locked && selectedSet.size === 1 && ["nw", "ne", "sw", "se"].map((c) => <div key={c} className={`handle ${c}`} style={{ pointerEvents: "auto" }} onPointerDown={(e) => startScale(e, id)} />)}
           </div>
         );
       })}

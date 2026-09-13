@@ -23,6 +23,7 @@ Then **Browse…** to a project folder (or paste its path) and **Open project**.
 | **Inspector → Text** | The element's copy (`useCopy`). `\|` = line break where the template supports it. |
 | **Inspector → Transform / Timing** | X / Y, scale, rotation, opacity, visibility, and *Shift* (frames earlier/later). |
 | **Inspector → Properties** | Every `edit()` value the template declares for that element: sizes with sliders, colours with a picker, toggles, enums. |
+| **Clips (elements & sounds)** | Right-click any clip in the timeline or any element on the canvas: **Cut / Copy / Paste at playhead** (relative offsets kept), **Duplicate**, **Split at playhead**, **Hide / Mute**, **Lock**, **Delete** — also `⌘X/C/V/D/K/L`, `H`, `M`, `⌫`. Drag a clip's edges to trim. Elements are code, so copies are **linked instances** that render the original's content with their own position/timing (stored in `layout.json`, kept inside the source's scene); deleting a code-declared element hides it. Split works through a visibility window (`trimIn`/`trimOut`) written back to the `<Editable>`. |
 | **Inspector (multi-selection)** | With several items selected, only the fields they all share are shown — volume / mute / move / replace-file for sounds; move / scale / rotation / opacity / visibility / shift plus any property they all declare (e.g. *Size* across headlines) for elements. Values that differ are marked *Mixed*; every change applies to all of them as one undo step. |
 | **Inspector → Animation** | Every `useAnim()` entrance: delay, motion (spring presets / custom physics / bezier), and the *from* values (x, y, scale, opacity, rotation, blur), with a live curve preview. |
 | **Scene** (click a scene block or "Scene settings") | Duration, plus scene-level properties such as panel colours and wipe lengths. |
@@ -109,6 +110,7 @@ node scripts/multiselect.mjs  multi-select + group move (timeline and canvas)
 node scripts/marquee.mjs      rubber-band selection in the timeline
 node scripts/groupedit.mjs    group inspector: shared fields, edits applied to every selected item
 node scripts/clips.mjs        sound clip vocabulary: menu, split, trim, copy/paste, duplicate, delete, lock
+node scripts/elclips.mjs      element clip vocabulary: linked copies, split/trim windows, delete/hide, lock
 node scripts/audio.mjs        audio tracks: drag/replace/volume/mute/add, save → code
 node scripts/playpause.mjs    play/pause through the real UI controls
 node scripts/perf.mjs    main-thread ms/frame during playback

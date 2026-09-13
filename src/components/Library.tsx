@@ -73,7 +73,7 @@ export const Library: React.FC = () => {
           scan.status !== "done" ? (
             <div className="empty"><b>Analyzing…</b>Stepping through the video to find every element. {Math.round(scan.progress * 100)}%</div>
           ) : scenes.map((sc) => {
-            const els = scan.elements.filter((e) => e.sceneId === sc.id);
+            const els = useStore.getState().allElements().filter((e) => e.sceneId === sc.id);
             const sceneProps = propsOf(props, `scene:${sc.id}`, elementIds);
             if (!els.length && !sceneProps.length) return null;
             return (

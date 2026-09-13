@@ -10,11 +10,11 @@ import { parse } from "@babel/parser";
 import MagicString from "magic-string";
 
 const CALLS = new Set(["edit", "brand", "useCopy", "useAnim", "useAnimSpec", "useSceneDuration"]);
-const TRANSFORM_KEYS = ["x", "y", "scale", "rotate", "opacity", "hidden", "delay"];
+const TRANSFORM_KEYS = ["x", "y", "scale", "rotate", "opacity", "hidden", "delay", "trimIn", "trimOut", "locked"];
 const SOUND_TAGS = new Set(["Sound", "Sfx", "KeyTicks"]);
 const SOUND_KEYS = ["shift", "volume", "muted", "src", "trimStart", "duration", "locked"];
 const SOUND_DEFAULTS = { shift: 0, muted: false, trimStart: 0, locked: false };
-const TRANSFORM_DEFAULTS = { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1, hidden: false, delay: 0 };
+const TRANSFORM_DEFAULTS = { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1, hidden: false, delay: 0, trimIn: 0, trimOut: null, locked: false };
 
 export const listSourceFiles = (dir) => {
   const out = [];
@@ -170,13 +170,13 @@ export const applyLayout = (dir, layout) => {
   }
   for (const [id, t] of Object.entries(layout.elements ?? {})) {
     const e = byLocator.get(`jsx:${id}`);
-    if (!e) { unresolved.elements[id] = t; continue; }
+    if (!e || t.cloneOf) { unresolved.elements[id] = t; continue; }
     // final attribute values = existing code defaults overridden by the layout
     const final = {};
     for (const k of TRANSFORM_KEYS) {
       const cur = e.attrs[k]?.value;
       const next = t[k] !== undefined ? t[k] : cur;
-      if (next !== undefined && next !== TRANSFORM_DEFAULTS[k]) final[k] = next;
+      if (next !== undefined && next !== null && next !== TRANSFORM_DEFAULTS[k]) final[k] = next;
     }
     // remove all existing transform attrs, then insert the final set after id=
     const removals = Object.values(e.attrs).sort((a, b) => b.start - a.start);
