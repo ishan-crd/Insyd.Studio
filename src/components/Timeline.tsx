@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+
 import { animLength, useProps, type AnimSpec } from "@project/sdk";
 import { useStore } from "../state/store";
 import { usePlayback } from "../state/playback";
@@ -73,6 +74,45 @@ export const Timeline: React.FC = () => {
     return out;
   }, [def.fps, duration, ppf]);
 
+  // ---- rubber-band selection on empty track space (click without moving = seek) ----
+  const [marquee, setMarquee] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const contentPoint = (clientX: number, clientY: number) => {
+    const el = tracksRef.current!; const r = el.getBoundingClientRect();
+    return { x: clientX - r.left + el.scrollLeft, y: clientY - r.top + el.scrollTop };
+  };
+  const applyMarquee = (box: { x: number; y: number; w: number; h: number }, base: { type: "element" | "sound"; ids: string[] } | null) => {
+    const el = tracksRef.current!; const r = el.getBoundingClientRect();
+    const hits: Record<"element" | "sound", string[]> = { element: [], sound: [] };
+    for (const node of Array.from(el.querySelectorAll<HTMLElement>("[data-clip-id]"))) {
+      const b = node.getBoundingClientRect();
+      const cx = b.left - r.left + el.scrollLeft, cy = b.top - r.top + el.scrollTop;
+      if (cx < box.x + box.w && cx + b.width > box.x && cy < box.y + box.h && cy + b.height > box.y) {
+        hits[node.dataset.clipKind === "snd" ? "sound" : "element"].push(node.dataset.clipId!);
+      }
+    }
+    // one domain at a time: keep the domain of an additive base, otherwise the one with more hits
+    const type = base ? base.type : hits.sound.length > hits.element.length ? "sound" : "element";
+    const ids = Array.from(new Set([...(base?.ids ?? []), ...hits[type]]));
+    if (!ids.length) { if (!base) useStore.setState({ selection: null, multi: [] }); return; }
+    useStore.setState({ selection: { type, id: ids[ids.length - 1] }, multi: ids });
+  };
+  const trackDown = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault(); // no native text/drag selection
+    const start = contentPoint(e.clientX, e.clientY);
+    const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+    const cur = store().selection;
+    const base = additive && (cur?.type === "element" || cur?.type === "sound") ? { type: cur.type, ids: store().selectedIds() } : null;
+    let moved = false;
+    drag(e, (_dx, ev) => {
+      const p = contentPoint(ev.clientX, ev.clientY);
+      if (!moved && Math.hypot(p.x - start.x, p.y - start.y) < 4) return;
+      moved = true;
+      const box = { x: Math.min(start.x, p.x), y: Math.min(start.y, p.y), w: Math.abs(p.x - start.x), h: Math.abs(p.y - start.y) };
+      setMarquee(box); applyMarquee(box, base);
+    }, (m) => { setMarquee(null); if (!m) seek(frameAt(e.clientX)); });
+  };
+
   const frameAt = (clientX: number) => {
     const el = tracksRef.current!;
     const x = clientX - el.getBoundingClientRect().left + el.scrollLeft;
@@ -125,7 +165,7 @@ export const Timeline: React.FC = () => {
   };
 
   const elementIds = useMemo(() => scan.elements.map((e) => e.id), [scan.elements]);
-  const audio = useAudioRows(ppf, scrub, drag);
+  const audio = useAudioRows(ppf, trackDown, drag);
   const rows: React.ReactNode[] = [];
   const names: React.ReactNode[] = [];
   scenes.forEach((sc) => {
@@ -137,7 +177,7 @@ export const Timeline: React.FC = () => {
         <Chevron open={open} /><span className="chip" style={{ background: sceneColor(sc.index) }} />{sc.label}<span style={{ marginLeft: "auto", fontWeight: 500 }}>{els.length}</span>
       </div></div>,
     );
-    rows.push(<div key={"g" + sc.id} className="trow grp" onPointerDown={scrub} />);
+    rows.push(<div key={"g" + sc.id} className="trow grp" onPointerDown={trackDown} />);
     if (!open) return;
     els.forEach((e) => {
       const t = { delay: 0, hidden: false, ...(codeDefaults[e.id] ?? {}), ...(layout.elements[e.id] ?? {}) };
@@ -152,8 +192,8 @@ export const Timeline: React.FC = () => {
         </div></div>,
       );
       rows.push(
-        <div key={e.id} className="trow" onPointerDown={scrub}>
-          <div className={`clip ${on ? "on" : ""} ${t.hidden ? "hidden-el" : ""}`}
+        <div key={e.id} className="trow" onPointerDown={trackDown}>
+          <div className={`clip ${on ? "on" : ""} ${t.hidden ? "hidden-el" : ""}`} data-clip-id={e.id} data-clip-kind="el"
             style={{ left: clipStart * ppf, width: Math.max(6, (e.last - e.first + 1) * ppf - 1), ["--clip" as any]: sceneColor(sc.index) }}
             onPointerDown={(ev) => dragClip(ev, e.id, e.first, e.last)}
             onMouseEnter={() => store().setHover(e.id)} onMouseLeave={() => store().setHover(null)}
@@ -223,6 +263,7 @@ export const Timeline: React.FC = () => {
             </div>
             {rows}
             {audio.rows}
+            {marquee && <div className="marquee" style={{ left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h }} />}
             <Playhead ppf={ppf} tracksRef={tracksRef} />
           </div>
         </div>

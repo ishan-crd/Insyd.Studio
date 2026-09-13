@@ -84,7 +84,7 @@ export const SoundClipView: React.FC<{ c: SoundClip; ppf: number; on: boolean; o
   const color = COLORS[c.kind] ?? COLORS.sfx;
   const store = useStore.getState;
   return (
-    <div className={`aclip ${on ? "on" : ""} ${c.muted ? "muted" : ""}`} style={{ left: c.start * ppf, width: Math.max(6, c.frames * ppf - 1), top: 3, height: row - 6, ["--clip" as any]: color }}
+    <div className={`aclip ${on ? "on" : ""} ${c.muted ? "muted" : ""}`} data-clip-id={c.id} data-clip-kind="snd" style={{ left: c.start * ppf, width: Math.max(6, c.frames * ppf - 1), top: 3, height: row - 6, ["--clip" as any]: color }}
       onPointerDown={onPointerDown} onMouseEnter={() => store().setHover(null)}
       title={`${c.label} · ${c.src} · starts f${c.start} · ${(c.frames / def.fps).toFixed(2)}s · vol ${Math.round(c.volume * 100)}%${c.muted ? " · muted" : ""}${c.shift ? ` · shift ${c.shift}` : ""} — drag to move`}>
       <Wave url={c.url} color={color} frames={c.frames} fps={def.fps} repeat={c.repeat} every={c.every} />
