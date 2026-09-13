@@ -6,17 +6,16 @@ import { usePlayback } from "../state/playback";
 import { seek } from "../lib/player";
 import { sceneColor } from "../lib/colors";
 import { timecode } from "../lib/format";
-import { Block, Chevron, Eye, EyeOff, Image, Text } from "../lib/icons";
+import { Chevron, Eye, EyeOff } from "../lib/icons";
 import { propsOf } from "../lib/owners";
 import { useAudioRows } from "./AudioTracks";
 import { openMenu, type MenuItem } from "./ContextMenu";
 import { snapDelta, clearSnap, useSnapUi } from "../lib/snap";
 import { useThumbs } from "../lib/thumbs";
-import { copyElements, cutElements, pasteClipboard, duplicateElements, splitElements, deleteElements, setElementsLocked, trimElement, isElementLocked, getClipboard } from "../lib/clips";
+import { copyElements, cutElements, pasteClipboard, duplicateElements, splitElements, deleteElements, setElementsLocked, trimElement, isElementLocked, getClipboard, duplicateSounds, splitSounds, setSoundsLocked, isSoundLocked } from "../lib/clips";
 import { Copy, Clipboard as ClipIcon, Duplicate, Scissors, Trash, Lock, Unlock, EyeOff as EyeOffIcon } from "../lib/icons";
 
-const ROW = { ruler: 28, scene: 56, grp: 24, el: 28 };
-const KindIcon: React.FC<{ kind: string }> = ({ kind }) => (kind === "text" ? <Text /> : kind === "image" ? <Image /> : <Block />);
+const ROW = { ruler: 24, scene: 52, grp: 24, el: 28 };
 
 // Thumbnails that fall inside a scene block, laid out at their frame position.
 const Filmstrip: React.FC<{ from: number; duration: number; ppf: number }> = ({ from, duration, ppf }) => {
@@ -254,9 +253,9 @@ export const Timeline: React.FC = () => {
     const open = !collapsed[sc.id];
     names.push(
       <div key={"g" + sc.id} className="trow grp"><div className="tname grp" style={{ height: ROW.grp }} onClick={() => store().toggleCollapsed(sc.id)}>
-        <Chevron open={open} /><span className="chip" style={{ background: sceneColor(sc.index) }} />{sc.label}
+        <Chevron open={open} /><span className="chip" style={{ background: sceneColor(sc.index) }} /><span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{sc.label}</span>
         {(() => { const all = els.length > 0 && els.every((x) => isElementLocked(x.id)); return <span className={`tlock ${all ? "on" : ""}`} title={all ? "Unlock all elements in this scene" : "Lock all elements in this scene"} onClick={(ev) => { ev.stopPropagation(); setElementsLocked(els.map((x) => x.id), !all); }}>{all ? <Lock /> : <Unlock />}</span>; })()}
-        <span style={{ fontWeight: 500, marginLeft: 6 }}>{els.length}</span>
+        <span className="cnt">{els.length}</span>
       </div></div>,
     );
     rows.push(<div key={"g" + sc.id} className="trow grp" onPointerDown={trackDown} onContextMenu={(e) => openMenu(e, elementMenu([]))} />);
@@ -272,7 +271,7 @@ export const Timeline: React.FC = () => {
       const isClone = !!(layout.elements[e.id]?.cloneOf);
       names.push(
         <div key={e.id} className="trow" data-row={e.id}><div className={`tname ${on ? "on" : ""}`} style={{ height: ROW.el }} onMouseEnter={() => store().setHover(e.id)} onMouseLeave={() => store().setHover(null)} onClick={(ev) => (ev.shiftKey || ev.metaKey || ev.ctrlKey) ? store().addToSelection(e.id, ev.metaKey || ev.ctrlKey) : store().select({ type: "element", id: e.id })} onContextMenu={(ev) => ctxElement(ev, e.id)}>
-          <span style={{ display: "grid", placeItems: "center", opacity: 0.7 }}>{t.locked ? <Lock /> : <KindIcon kind={e.kind} />}</span>
+          <span className="chip" style={{ background: sceneColor(sc.index) }} />{t.locked && <Lock />}
           <span style={{ overflow: "hidden", textOverflow: "ellipsis", fontStyle: isClone ? "italic" : undefined }}>{e.label}</span>
           <span className="eye" onClick={(ev) => { ev.stopPropagation(); store().updateElement(e.id, { hidden: !t.hidden }); }}>{t.hidden ? <EyeOff /> : <Eye />}</span>
         </div></div>,
@@ -312,23 +311,39 @@ export const Timeline: React.FC = () => {
           window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
         }} />
         <span className="title">Timeline</span>
-        <span className="sep" />
         {scan.status === "running" ? (
           <div className="scanbar">Analyzing elements <div className="bar"><i style={{ width: `${scan.progress * 100}%` }} /></div></div>
         ) : thumbState.status === "running" ? (
           <div className="scanbar">Rendering thumbnails <div className="bar"><i style={{ width: `${thumbState.progress * 100}%` }} /></div></div>
         ) : (
-          <span style={{ color: "var(--text-3)", fontSize: 12 }}>{multi.length > 1 ? <b style={{ color: "var(--accent)" }}>{multi.length} selected · drag any of them to slide the group · </b> : null}{scenes.length} scenes · {scan.elements.length} elements · {scan.sounds.length} sounds · ⇧-click clips to multi-select · drag scene edges to trim · drag the bright bar inside a clip to re-time its entrance</span>
+          <span className="stats" title="⇧-click clips to multi-select · drag scene edges to trim · drag the bar inside a clip to re-time its entrance">{multi.length > 1 ? <b>{multi.length} selected · drag any of them to slide the group · </b> : null}{scenes.length} scenes · {scan.elements.length} elements · {scan.sounds.length} sounds</span>
         )}
         <div className="spacer" />
-        <span style={{ color: "var(--text-3)", fontSize: 12 }}>Zoom</span>
-        <input type="range" min={1} max={8} step={0.1} value={zoomMul} onChange={(e) => store().setZoom(parseFloat(e.target.value))} style={{ width: 120, padding: 0, background: "transparent", border: 0 }} />
-        <button className="btn ghost sm" onClick={() => store().setZoom(null)}>Fit</button>
+        {(() => {
+          // clip tools act on the current selection (elements or sounds)
+          const kind = selection?.type === "element" || selection?.type === "sound" ? selection.type : null;
+          const ids = kind ? store().selectedIds() : [];
+          const n = ids.length;
+          const allLocked = n > 0 && ids.every((id) => (kind === "sound" ? isSoundLocked(id) : isElementLocked(id)));
+          const frame = usePlayback.getState().frame;
+          return (
+            <div className="tl-tools">
+              <button title="Split at playhead (⌘K)" disabled={!n || allLocked} onClick={() => (kind === "sound" ? splitSounds(frame, ids) : splitElements(frame, ids))}>Split</button>
+              <button title={kind === "element" ? "Duplicate as a linked copy (⌘D)" : "Duplicate (⌘D)"} disabled={!n} onClick={() => (kind === "sound" ? duplicateSounds(ids) : duplicateElements(ids))}>Duplicate</button>
+              <button className={allLocked ? "on" : ""} title={allLocked ? "Unlock (⌘L)" : "Lock (⌘L)"} disabled={!n} onClick={() => (kind === "sound" ? setSoundsLocked(ids, !allLocked) : setElementsLocked(ids, !allLocked))}>{allLocked ? "Unlock" : "Lock"}</button>
+            </div>
+          );
+        })()}
+        <div className="zoom">
+          <span>Zoom</span>
+          <input type="range" min={1} max={8} step={0.1} value={zoomMul} style={{ ["--p" as any]: `${((zoomMul - 1) / 7) * 100}%` }} onChange={(e) => store().setZoom(parseFloat(e.target.value))} />
+          <button className="btn" onClick={() => store().setZoom(null)}>Fit</button>
+        </div>
       </div>
       <div className="tl-body">
         <div className="tl-names" ref={namesRef}>
           <div className="trow ruler" style={{ height: ROW.ruler }} />
-          <div className="trow scene"><div className="tname" style={{ height: ROW.scene, fontWeight: 600 }}>Scenes</div></div>
+          <div className="trow scene"><div className="tname" style={{ height: ROW.scene, fontWeight: 600, color: "var(--ink)" }}>Scenes</div></div>
           {names}
           {audio.names}
         </div>

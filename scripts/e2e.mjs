@@ -54,7 +54,10 @@ const fs1 = await page.evaluate(() => { const el = document.querySelector('[data
 check("number prop (headline size) updates the composition", fs1 === "140px", fs1);
 // inspector renders the prop rows for the selected element
 const inspText = await page.innerText(".insp");
-check("inspector shows the element's own props + animation", /Size/.test(inspText) && /Motion/.test(inspText) && /Delay/.test(inspText));
+await page.click('.insp .tabs >> text=Animation'); await page.waitForTimeout(200);
+const animText = await page.innerText(".insp");
+await page.click('.insp .tabs >> text=Element'); await page.waitForTimeout(200);
+check("inspector shows the element's own props + animation (Animation tab)", /Size/.test(inspText) && /Motion/.test(animText) && /Delay/.test(animText));
 
 // ---- text edit through the inspector textarea
 await page.fill("#insp-text", "Give Claude a thumb.|Ship faster.");

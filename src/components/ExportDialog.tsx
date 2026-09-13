@@ -32,31 +32,30 @@ export const ExportDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => 
 
   return (
     <div className="modal-bg" onPointerDown={(e) => { if (e.target === e.currentTarget && !busy) onClose(); }}>
-      <div className="modal">
+      <div className="modal" style={{ width: 440 }}>
         <h2>Export video</h2>
-        <p>Renders exactly what you see in the editor — unsaved edits included — as H.264 MP4 to your Desktop.</p>
+        <p>MP4 · H.264 · {def.width}×{def.height} · {def.fps} fps · {(useStore.getState().duration() / def.fps).toFixed(1)}s — exactly what you see, unsaved edits included.</p>
         {!job && (
-          <>
-            <div className="field" style={{ gridTemplateColumns: "90px 1fr" }}><label>File name</label><input value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div className="field" style={{ gridTemplateColumns: "90px 1fr" }}><label>Quality</label>
+          <div className="grid2">
+            <div className="field"><label>File name</label><input value={name} onChange={(e) => setName(e.target.value)} /></div>
+            <div className="field"><label>Quality</label>
               <select value={crf} onChange={(e) => setCrf(Number(e.target.value))}>{QUALITY.map((q) => <option key={q.crf} value={q.crf}>{q.label}</option>)}</select>
             </div>
-            <div className="field" style={{ gridTemplateColumns: "90px 1fr" }}><label>Output</label><div className="id">{def.width}×{def.height} · {def.fps} fps · {(useStore.getState().duration() / def.fps).toFixed(1)}s</div></div>
-          </>
+          </div>
         )}
         {job && (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", color: "var(--text-2)" }}><span>{label}</span><span style={{ fontFamily: "var(--mono)" }}>{Math.round(job.progress * 100)}%</span></div>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--ink-2)" }}><span>{label}{job.stage === "rendering" ? ` · ${Math.round(job.progress * useStore.getState().duration())} / ${useStore.getState().duration()}` : ""}</span><span style={{ fontWeight: 500, color: "var(--ink)" }}>{Math.round(job.progress * 100)}%</span></div>
             <div className="progress"><i style={{ width: `${job.progress * 100}%`, background: job.stage === "error" ? "var(--danger)" : undefined }} /></div>
-            <div className="id" style={{ wordBreak: "break-all" }}>{job.outputLocation}</div>
-            {job.error && <div className="check bad" style={{ marginTop: 8 }}>{job.error}</div>}
+            <div className="hint" style={{ padding: 0, wordBreak: "break-all" }}>{job.outputLocation}</div>
+            {job.error && <div className="callout warn" style={{ marginTop: 8 }}>{job.error}</div>}
           </>
         )}
-        <div className="actions">
-          {!job && <><button className="btn" onClick={onClose}>Cancel</button><button className="btn primary" onClick={start}>Export</button></>}
-          {busy && <button className="btn" onClick={() => jobId && api.cancelRender(jobId)}>Cancel render</button>}
-          {job?.stage === "done" && <><button className="btn" onClick={() => api.reveal(job.outputLocation)}>Reveal in Finder</button><button className="btn primary" onClick={() => api.openFile(job.outputLocation)}>Open</button><button className="btn ghost" onClick={onClose}>Close</button></>}
-          {job?.stage === "error" && <button className="btn" onClick={onClose}>Close</button>}
+        <div className="actions" style={{ display: "flex" }}>
+          {!job && <><button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={onClose}>Cancel</button><button className="btn primary" style={{ flex: 1, justifyContent: "center" }} onClick={start}>Export</button></>}
+          {busy && <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => jobId && api.cancelRender(jobId)}>Cancel render</button>}
+          {job?.stage === "done" && <><button className="btn ghost" onClick={onClose}>Close</button><button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={() => api.reveal(job.outputLocation)}>Reveal in Finder</button><button className="btn primary" style={{ flex: 1, justifyContent: "center" }} onClick={() => api.openFile(job.outputLocation)}>Open</button></>}
+          {job?.stage === "error" && <button className="btn" style={{ flex: 1, justifyContent: "center" }} onClick={onClose}>Close</button>}
         </div>
       </div>
     </div>

@@ -55,3 +55,9 @@ export const Mute = () => <I d={["M4 10v4h4l5 4V6L8 10z", "M17 9l4 6M21 9l-4 6"]
 export const ClaudeMark = () => <I fill d="M12 2c.6 5.4 4.6 9.4 10 10-5.4.6-9.4 4.6-10 10-.6-5.4-4.6-9.4-10-10 5.4-.6 9.4-4.6 10-10z" />;
 export const Terminal = () => <I d={["M3 4h18v16H3z", "M7 9l3 3-3 3", "M12 15h5"]} />;
 export const Plug = () => <I d={["M9 3v5", "M15 3v5", "M6 8h12v3a6 6 0 0 1-12 0z", "M12 17v4"]} />;
+export const ChevronDown = () => <I d="M6 9l6 6 6-6" />;
+export const Sun = () => <I d={["M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10z", "M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"]} />;
+export const Moon = () => <I d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11z" />;
+export const Keyboard = () => <I d={["M3 7h18v11H3z", "M7 11h.01M11 11h.01M15 11h.01M7 14h10"]} />;
+export const PrevScene = () => <I d={["M6 5v14", "M18 6.5v11a.5.5 0 0 1-.8.4L9.6 12.4a.5.5 0 0 1 0-.8l7.6-5.5a.5.5 0 0 1 .8.4z"]} />;
+export const NextScene = () => <I d={["M18 5v14", "M6 6.5v11a.5.5 0 0 0 .8.4l7.6-5.5a.5.5 0 0 0 0-.8L6.8 6.1a.5.5 0 0 0-.8.4z"]} />;

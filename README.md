@@ -17,6 +17,14 @@ npm run dev          # → http://localhost:4321
 Then **Browse…** to a project folder and **Open project**. Requires macOS, Node 18+, and a Remotion
 project prepared for Studio (see *Making a project editable*).
 
+## Look
+
+Quiet neutrals, one blue for selection, black for the primary action. Light by default; the moon/sun button in the
+top bar switches to dark (remembered per browser). Layout: library (Scenes · Elements · Sounds · Brand) on the
+left, the canvas with a floating size/zoom chip and a transport bar in the middle, the inspector (Element ·
+Animation, or Sound / Scene / Brand / Group) on the right, and the timeline below with Split · Duplicate · Lock,
+zoom and Fit.
+
 ## What you can do
 
 | | |

@@ -29,9 +29,9 @@ export const ShortcutsModal: React.FC = () => {
   if (!open) return null;
   return (
     <div className="modal-bg" onPointerDown={(e) => { if (e.target === e.currentTarget) set(false); }}>
-      <div className="modal" style={{ width: 720, maxHeight: "84vh", overflow: "auto" }}>
+      <div className="modal" style={{ width: 680, maxHeight: "84vh", overflow: "auto" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}><h2>Keyboard shortcuts</h2><button className="btn ghost icon" onClick={() => set(false)}><Close /></button></div>
-        <p>Studio follows the conventions of desktop video editors. Shortcuts act on the current selection.</p>
+        <p style={{ marginBottom: 4 }}>Shortcuts act on the current selection.</p>
         <div className="sc-grid">
           {GROUPS.map((g) => <div key={g.title} className="sc-group"><h4>{g.title}</h4>{g.rows.map(([l, k]) => <Row key={l} label={l} keys={k} />)}</div>)}
         </div>

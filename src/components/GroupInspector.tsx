@@ -10,26 +10,31 @@ import { Block, Music, Waveform } from "../lib/icons";
 // where values differ. Each change is applied to all selected items as one undo step.
 
 const same = <T,>(vals: T[]) => vals.every((v) => JSON.stringify(v) === JSON.stringify(vals[0]));
-const Mixed: React.FC = () => <span className="kbd" style={{ display: "table", marginTop: 3, fontSize: 9, padding: "0 4px", color: "var(--warn)", lineHeight: "14px" }}>Mixed</span>;
+const Mixed: React.FC = () => <span className="mixed" title="Values differ across the selection">Mixed</span>;
 
 const Header: React.FC<{ title: string; ids: string[]; labelOf: (id: string) => string; primary: string; onPrimary: (id: string) => void; onRemove: (id: string) => void; hint: string; icon: React.ReactNode }> = ({ title, ids, labelOf, primary, onPrimary, onRemove, hint, icon }) => (
-  <div style={{ margin: "8px 6px 0", padding: "10px 10px 8px", borderRadius: 10, background: "var(--accent-soft)", border: "1px solid var(--accent)" }}>
-    <div style={{ fontWeight: 600, fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: "var(--text-2)" }}>{icon}</span>{title}</div>
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 8, maxHeight: 96, overflow: "auto" }}>
-      {ids.map((id) => (
-        <span key={id} className="kbd" style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer", borderColor: id === primary ? "var(--accent)" : undefined }} title="Click to make primary · × to remove" onClick={() => onPrimary(id)}>
-          {labelOf(id)}<span onClick={(e) => { e.stopPropagation(); onRemove(id); }} style={{ opacity: 0.6 }}>×</span>
-        </span>
-      ))}
+  <div className="insp-head">
+    <div className="top">
+      <span className="badge">{icon}</span>
+      <div style={{ flex: 1, minWidth: 0 }}><div className="title">{title}</div><div className="subtitle">Shared fields only</div></div>
     </div>
-    <div className="hint" style={{ padding: "6px 0 0" }}>{hint}</div>
+    <div className="note">
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 2, maxHeight: 96, overflow: "auto", marginBottom: 6 }}>
+        {ids.map((id) => (
+          <span key={id} className="kbd" style={{ display: "inline-flex", alignItems: "center", gap: 4, outline: id === primary ? "1px solid var(--accent)" : undefined }} title="Click to make primary · × to remove" onClick={() => onPrimary(id)}>
+            {labelOf(id)}<span onClick={(e) => { e.stopPropagation(); onRemove(id); }} style={{ opacity: 0.6 }}>×</span>
+          </span>
+        ))}
+      </div>
+      {hint}
+    </div>
   </div>
 );
 
 const NudgeRow: React.FC<{ label: string; unit: string; onNudge: (d: number) => void; steps?: number[] }> = ({ label, unit, onNudge, steps = [10, 1] }) => (
   <div className="field"><label>{label}</label>
     <div style={{ display: "flex", gap: 4 }}>
-      {[...steps.map((s) => -s), ...steps.slice().reverse()].map((d) => <button key={d} className="btn sm" style={{ flex: 1, padding: 0, fontFamily: "var(--mono)" }} onClick={() => onNudge(d)}>{d > 0 ? "+" : ""}{d}{unit}</button>)}
+      {[...steps.map((s) => -s), ...steps.slice().reverse()].map((d) => <button key={d} className="btn sm" style={{ flex: 1, padding: 0, height: 28 }} onClick={() => onNudge(d)}>{d > 0 ? "+" : ""}{d}{unit}</button>)}
     </div>
   </div>
 );
@@ -50,23 +55,27 @@ export const SoundGroupInspector: React.FC<{ ids: string[]; primary: string }> =
       <Header title={`${sel.length} sounds selected`} ids={sel.map((c) => c.id)} labelOf={(id) => sel.find((c) => c.id === id)?.label ?? id} primary={primary}
         onPrimary={(id) => useStore.setState({ selection: { type: "sound", id } })} onRemove={(id) => store().addToSelection(id, true)}
         hint="Changes below apply to every selected sound." icon={<Waveform />} />
-      <div className="section">Level</div>
-      <div className="field"><label>Volume{!same(vols) && <Mixed />}</label>
-        <NumberField value={Math.round(primaryClip.volume * 100)} min={0} max={200} step={1} slider unit="%" onChange={(v, commit) => store().setSounds(Object.fromEntries(sel.map((c) => [c.id, { volume: Math.max(0, v) / 100 }])), commit)} />
+      <div className="sect">
+        <div className="section">Level</div>
+        <div className="field"><label>Volume{!same(vols) && <Mixed />}<span className="val">{Math.round(primaryClip.volume * 100)}%</span></label>
+          <NumberField value={Math.round(primaryClip.volume * 100)} min={0} max={200} step={1} slider unit="%" onChange={(v, commit) => store().setSounds(Object.fromEntries(sel.map((c) => [c.id, { volume: Math.max(0, v) / 100 }])), commit)} />
+        </div>
+        <div className="field" style={{ marginTop: 8 }}><label>Muted{!same(mutes) && <Mixed />}</label><BoolField value={mutes.every(Boolean)} label={["Playing", "Muted"]} onChange={(v) => applyAll(() => ({ muted: v }))} /></div>
       </div>
-      <div className="field"><label>Muted{!same(mutes) && <Mixed />}</label><BoolField value={mutes.every(Boolean)} label={["Playing", "Muted"]} onChange={(v) => applyAll(() => ({ muted: v }))} /></div>
-      <div className="section">Timing</div>
-      <NudgeRow label="Move all" unit="f" onNudge={(d) => applyAll((c) => (c.added ? { at: Math.max(0, c.natural + d) } : { shift: c.shift + d }))} />
-      <div className="hint">Or drag any selected clip in the timeline. Starts range f{Math.min(...sel.map((c) => c.start))}–f{Math.max(...sel.map((c) => c.start))}.</div>
-      <div className="section">File</div>
-      <div style={{ padding: "0 6px", position: "relative" }}>
+      <div className="sect">
+        <div className="section">Timing</div>
+        <NudgeRow label="Move all" unit="f" onNudge={(d) => applyAll((c) => (c.added ? { at: Math.max(0, c.natural + d) } : { shift: c.shift + d }))} />
+        <div className="hint">Or drag any selected clip in the timeline. Starts range f{Math.min(...sel.map((c) => c.start))}–f{Math.max(...sel.map((c) => c.start))}.</div>
+      </div>
+      <div className="sect" style={{ position: "relative" }}>
+        <div className="section">File</div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           <input readOnly value={same(srcs) ? srcs[0] : `${new Set(srcs).size} different files`} style={{ flex: 1, fontFamily: "var(--mono)", fontSize: 11, color: same(srcs) ? undefined : "var(--warn)" }} />
-          <button className="btn sm" onClick={() => setPicking((p) => !p)}>Replace all…</button>
+          <button className="btn sm" style={{ height: 28 }} onClick={() => setPicking((p) => !p)}>Replace all…</button>
         </div>
         {picking && <SoundPicker title={`Replace ${sel.length} sounds with`} onClose={() => setPicking(false)} onPick={(src) => { setPicking(false); applyAll(() => ({ src })); }} />}
       </div>
-      <div className="btnrow" style={{ marginTop: 8 }}>
+      <div className="btnrow" style={{ paddingTop: 12 }}>
         {allAdded
           ? <button className="btn sm" onClick={() => { const s = store(); s.begin(); const sounds = { ...s.layout.sounds }; sel.forEach((c) => delete sounds[c.id]); useStore.setState({ layout: { ...s.layout, sounds }, selection: null, multi: [] }); s.end(); }}>Remove all</button>
           : <button className="btn sm" disabled={!anyEdited} onClick={() => { const s = store(); s.begin(); const sounds = { ...s.layout.sounds }; sel.forEach((c) => { if (!c.added) delete sounds[c.id]; }); useStore.setState({ layout: { ...s.layout, sounds } }); s.end(); }}>Reset all to code</button>}
@@ -108,17 +117,25 @@ export const ElementGroupInspector: React.FC<{ ids: string[]; primary: string }>
       <Header title={`${ids.length} elements selected`} ids={ids} labelOf={labelOf} primary={primary}
         onPrimary={(id) => useStore.setState({ selection: { type: "element", id } })} onRemove={(id) => store().addToSelection(id, true)}
         hint="Changes below apply to every selected element. Drag any of them on the canvas or the timeline to move the group." icon={<Block />} />
-      <div className="section">Transform</div>
-      <NudgeRow label="Move X" unit="" onNudge={(d) => applyAll((_, t) => ({ x: t.x + d }))} />
-      <NudgeRow label="Move Y" unit="" onNudge={(d) => applyAll((_, t) => ({ y: t.y + d }))} />
-      <div className="field"><label>Scale{!same(scales) && <Mixed />}</label><NumberField unit="×" value={pt.scale} step={0.01} min={0.05} onChange={(scale, c) => applyAll(() => ({ scale }), c)} /></div>
-      <div className="field"><label>Rotation{!same(rots) && <Mixed />}</label><NumberField unit="°" value={pt.rotate} step={1} onChange={(rotate, c) => applyAll(() => ({ rotate }), c)} /></div>
-      <div className="field"><label>Opacity{!same(ops) && <Mixed />}</label><NumberField unit="α" value={pt.opacity} step={0.05} min={0} max={1} slider onChange={(o, c) => applyAll(() => ({ opacity: Math.min(1, Math.max(0, o)) }), c)} /></div>
-      <div className="field"><label>Visible{!same(hid) && <Mixed />}</label><BoolField value={!hid.every(Boolean)} label={["Hidden", "Shown"]} onChange={(v) => applyAll(() => ({ hidden: !v }))} /></div>
-      <div className="section">Timing</div>
-      <NudgeRow label="Shift all" unit="f" onNudge={(d) => applyAll((_, t) => ({ delay: t.delay + d }))} />
+      <div className="sect">
+        <div className="section">Transform</div>
+        <div style={{ display: "grid", gap: 8 }}>
+          <NudgeRow label="Move X" unit="" onNudge={(d) => applyAll((_, t) => ({ x: t.x + d }))} />
+          <NudgeRow label="Move Y" unit="" onNudge={(d) => applyAll((_, t) => ({ y: t.y + d }))} />
+        </div>
+        <div className="grid2" style={{ marginTop: 8 }}>
+          <div className="field"><label>Scale{!same(scales) && <Mixed />}</label><NumberField unit="×" value={pt.scale} step={0.01} min={0.05} onChange={(scale, c) => applyAll(() => ({ scale }), c)} /></div>
+          <div className="field"><label>Rotation{!same(rots) && <Mixed />}</label><NumberField unit="°" value={pt.rotate} step={1} onChange={(rotate, c) => applyAll(() => ({ rotate }), c)} /></div>
+        </div>
+        <div className="field" style={{ marginTop: 12 }}><label>Opacity{!same(ops) && <Mixed />}<span className="val">{Math.round(pt.opacity * 100)}%</span></label><NumberField unit="α" value={pt.opacity} step={0.05} min={0} max={1} slider onChange={(o, c) => applyAll(() => ({ opacity: Math.min(1, Math.max(0, o)) }), c)} /></div>
+        <div className="field" style={{ marginTop: 8 }}><label>Visible{!same(hid) && <Mixed />}</label><BoolField value={!hid.every(Boolean)} label={["Hidden", "Shown"]} onChange={(v) => applyAll(() => ({ hidden: !v }))} /></div>
+      </div>
+      <div className="sect">
+        <div className="section">Timing</div>
+        <NudgeRow label="Shift all" unit="f" onNudge={(d) => applyAll((_, t) => ({ delay: t.delay + d }))} />
+      </div>
       {shared.length > 0 && (
-        <>
+        <div className="sect" style={{ display: "grid", gap: 8 }}>
           <div className="section">Shared properties</div>
           {shared.map(({ suffix, kind, meta, entries }) => {
             const vals = entries.map((p) => layout.props[p.id] ?? p.value);
@@ -131,9 +148,9 @@ export const ElementGroupInspector: React.FC<{ ids: string[]; primary: string }>
               </div>
             );
           })}
-        </>
+        </div>
       )}
-      <div className="btnrow" style={{ marginTop: 8 }}>
+      <div className="btnrow" style={{ paddingTop: 12 }}>
         <button className="btn sm" onClick={() => { const s = store(); s.begin(); const elements = { ...s.layout.elements }; const propsL = { ...s.layout.props }; ids.forEach((id) => { delete elements[id]; shared.forEach((g) => g.entries.forEach((p) => { if (p.id.startsWith(id + ".")) delete propsL[p.id]; })); }); useStore.setState({ layout: { ...s.layout, elements, props: propsL } }); s.end(); }}>Reset all</button>
       </div>
       <div className="hint">{def.fps} fps · shifts are in frames.</div>

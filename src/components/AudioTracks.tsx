@@ -5,14 +5,14 @@ import { usePlayback } from "../state/playback";
 import { seek } from "../lib/player";
 import { useAudioInfo, drawWave, peekAudioInfo, getAudioInfo } from "../lib/audio";
 import { api } from "../lib/api";
-import { Chevron, Lock, Music, Plus, Upload, Waveform as WaveIcon, Copy, Clipboard as ClipIcon, Duplicate, Scissors, Trash, Mute, Unlock } from "../lib/icons";
+import { Chevron, Lock, Plus, Upload, Waveform as WaveIcon, Copy, Clipboard as ClipIcon, Duplicate, Scissors, Trash, Mute, Unlock, Close } from "../lib/icons";
 import { setCurrentSoundClips, trimSound, copySounds, cutSounds, pasteSounds, duplicateSounds, splitSounds, deleteSounds, setSoundsLocked, getClipboard, isSoundLocked } from "../lib/clips";
 import { openMenu, type MenuItem } from "./ContextMenu";
 import { snapDelta, clearSnap } from "../lib/snap";
 
 export const ROW_AUDIO = 30;
 export const ROW_MUSIC = 40;
-const COLORS: Record<SoundKind, string> = { sfx: "#2FC5A8", music: "#B96BFF", voice: "#FF9F43" };
+const COLORS: Record<SoundKind, string> = { sfx: "#7A8B99", music: "#5B7A9A", voice: "#B08A5A" };
 
 /** One resolved sound: scan info (natural start) merged with the live registry entry and layout overrides. */
 export type SoundClip = {
@@ -153,7 +153,7 @@ export const SoundPicker: React.FC<{ onPick: (src: string) => void; onClose: () 
   };
   return (
     <div className="popover" onPointerDown={(e) => e.stopPropagation()}>
-      <div className="popover-head">{title}<button className="btn ghost icon sm" onClick={onClose}>×</button></div>
+      <div className="popover-head">{title}<button className="btn ghost icon sm" onClick={onClose}><Close /></button></div>
       <div className="popover-body">
         {files === null ? <div className="hint">Loading…</div> : files.length === 0 ? <div className="hint">No audio files in <code>public/</code> yet.</div> : files.map((f) => (
           <div key={f.src} className="row" onClick={() => onPick(f.src)}><WaveIcon /><span className="name">{f.src}</span><span className="meta">{(f.bytes / 1024).toFixed(0)} KB</span></div>
@@ -211,21 +211,21 @@ export const useAudioRows = (
   const names: React.ReactNode[] = [];
   names.push(
     <div key="ah" className="trow grp"><div className="tname grp" style={{ height: 24 }} onClick={() => store().toggleCollapsed("__audio")}>
-      <Chevron open={!collapsed} /><span className="chip" style={{ background: COLORS.sfx }} />Audio<span style={{ marginLeft: "auto", fontWeight: 500 }}>{clips.length}</span>
+      <Chevron open={!collapsed} /><span className="chip" style={{ background: COLORS.sfx }} />Audio<span className="cnt" style={{ marginLeft: "auto" }}>{clips.length}</span>
     </div></div>,
   );
   rows.push(<div key="ah" className="trow grp" onPointerDown={scrub}><AddSoundButton /></div>);
   if (!collapsed) {
     lanes.forEach((lane, i) => {
       const allSfxLocked = sfx.length > 0 && sfx.every((c) => isSoundLocked(c.id));
-      names.push(<div key={"l" + i} className="trow" style={{ height: ROW_AUDIO }}><div className="tname" style={{ height: ROW_AUDIO }}><WaveIcon />{i === 0 ? "Sound effects" : ""}
+      names.push(<div key={"l" + i} className="trow" style={{ height: ROW_AUDIO }}><div className="tname" style={{ height: ROW_AUDIO }}><span className="chip" style={{ background: COLORS.sfx }} />{i === 0 ? "Sound effects" : ""}
         {i === 0 && <span className={`tlock ${allSfxLocked ? "on" : ""}`} title={allSfxLocked ? "Unlock all sound effects" : "Lock all sound effects"} onClick={() => setSoundsLocked(sfx.map((c) => c.id), !allSfxLocked)}>{allSfxLocked ? <Lock /> : <Unlock />}</span>}
-        <span style={{ marginLeft: i === 0 ? 4 : "auto", color: "var(--text-3)", fontSize: 10 }}>{i + 1}</span></div></div>);
+        <span className="cnt" style={{ marginLeft: i === 0 ? 4 : "auto" }}>{i + 1}</span></div></div>);
       rows.push(<div key={"l" + i} className="trow" style={{ height: ROW_AUDIO }} onPointerDown={scrub} onContextMenu={(e) => openMenu(e, soundMenu([], usePlayback.getState().frame, clips))}>{lane.map((c) => <SoundClipView key={c.id} c={c} ppf={ppf} on={isOn(c.id)} row={ROW_AUDIO} onPointerDown={(e) => dragSound(e, c)} drag={drag} clips={clips} />)}</div>);
     });
-    if (!lanes.length) { names.push(<div key="l0" className="trow" style={{ height: ROW_AUDIO }}><div className="tname" style={{ height: ROW_AUDIO }}><WaveIcon />Sound effects</div></div>); rows.push(<div key="l0" className="trow" style={{ height: ROW_AUDIO }} onPointerDown={scrub} onContextMenu={(e) => openMenu(e, soundMenu([], usePlayback.getState().frame, clips))} />); }
+    if (!lanes.length) { names.push(<div key="l0" className="trow" style={{ height: ROW_AUDIO }}><div className="tname" style={{ height: ROW_AUDIO }}><span className="chip" style={{ background: COLORS.sfx }} />Sound effects</div></div>); rows.push(<div key="l0" className="trow" style={{ height: ROW_AUDIO }} onPointerDown={scrub} onContextMenu={(e) => openMenu(e, soundMenu([], usePlayback.getState().frame, clips))} />); }
     const allMusicLocked = music.length > 0 && music.every((c) => isSoundLocked(c.id));
-    names.push(<div key="m" className="trow" style={{ height: ROW_MUSIC }}><div className="tname" style={{ height: ROW_MUSIC }}><Music />Music
+    names.push(<div key="m" className="trow" style={{ height: ROW_MUSIC }}><div className="tname" style={{ height: ROW_MUSIC }}><span className="chip" style={{ background: COLORS.music }} />Music
       {music.length > 0 && <span className={`tlock ${allMusicLocked ? "on" : ""}`} title={allMusicLocked ? "Unlock music" : "Lock music"} onClick={() => setSoundsLocked(music.map((c) => c.id), !allMusicLocked)}>{allMusicLocked ? <Lock /> : <Unlock />}</span>}
     </div></div>);
     rows.push(<div key="m" className="trow" style={{ height: ROW_MUSIC }} onPointerDown={scrub} onContextMenu={(e) => openMenu(e, soundMenu([], usePlayback.getState().frame, clips))}>{music.map((c) => <SoundClipView key={c.id} c={c} ppf={ppf} on={isOn(c.id)} row={ROW_MUSIC} onPointerDown={(e) => dragSound(e, c)} drag={drag} clips={clips} />)}</div>);
@@ -238,7 +238,7 @@ export const AddSoundButton: React.FC = () => {
   const store = useStore.getState;
   return (
     <div style={{ position: "sticky", left: 8, display: "inline-block", zIndex: 2 }} onPointerDown={(e) => e.stopPropagation()}>
-      <button className="btn ghost sm" style={{ height: 20, fontSize: 11, padding: "0 8px" }} onClick={() => setOpen((o) => !o)}><Plus /> Sound</button>
+      <button className="btn ghost sm" style={{ height: 20, fontSize: 11, padding: "0 8px", gap: 4 }} onClick={() => setOpen((o) => !o)}><Plus /> Sound</button>
       {open && <SoundPicker onClose={() => setOpen(false)} onPick={(src) => { setOpen(false); const at = usePlayback.getState().frame; store().addSound({ src, at, label: src.split("/").pop() }); }} />}
     </div>
   );
