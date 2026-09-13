@@ -46,6 +46,9 @@ or renders unless asked, and do not commit — the person reviews in the editor 
 
 Composition \`${def.id}\` · ${def.width}×${def.height} @ ${fps} fps · ${total} frames (${tc(total)}) · project root: \`${dir}\`
 
+## Preferred: the insyd-studio MCP tools
+If the \`insyd-studio\` MCP server is available (it is when Studio launched you, or after \`claude mcp add --transport http insyd-studio http://localhost:${port}/mcp\`), **use its tools instead of editing files**: \`get_project\`, \`list_elements\`, \`list_sounds\`, \`list_values\`, \`set_text\`, \`set_value(s)\`, \`update_element(s)\`, \`set_sound(s)\` (bulk by query, e.g. all whooshes), \`add_sound\`, \`set_scene_duration\`, \`select\`/\`seek\`/\`play\`, \`undo\`, \`preview_frame\` (see the picture), \`save\` (write into the code), \`export_video\`. Every tool call applies live in the editor and is one undo step for the person. Edit source files directly only for structural changes the tools cannot express (new elements, new animation logic).
+
 ## How the template is wired (the editing contract)
 Every editable value is a **literal in the code**, addressed by a string id. Change the literal; nothing else.
 - **Text** → \`useCopy("id", "text")\` — \`|\` is a line break where the template supports it.

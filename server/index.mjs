@@ -9,10 +9,13 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { bundle } from "@remotion/bundler";
-import { renderMedia, renderFrames, selectComposition, makeCancelSignal } from "@remotion/renderer";
+import { renderMedia, renderFrames, renderStill, selectComposition, makeCancelSignal } from "@remotion/renderer";
+import http from "node:http";
 import crypto from "node:crypto";
 import { buildIndex, applyLayout } from "./codemod.mjs";
 import { buildBrief, writeClaudeMd } from "./context.mjs";
+import { attachBridge, bridge } from "./bridge.mjs";
+import { mountMcp } from "./mcp.mjs";
 
 const exec = promisify(execFile);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -184,9 +187,9 @@ app.post("/api/claude/open", async (req, res) => {
     const { brief } = makeContext(req.body);
     const claude = await findClaude();
     if (!claude) return res.json({ ok: false, brief, reason: "claude-not-found" });
-    const kickoff = "You are connected to Studio by Insyd for this project: the editor is open and the person is watching it. Read the Studio section of CLAUDE.md first — it lists every scene, element, sound and editable value with its file. Changes you save under src/ show up in the editor within a second. Reply with one line confirming you have the context, then wait for instructions.";
+    const kickoff = "You are connected to Studio by Insyd for this project: the editor is open and the person is watching it. You have the insyd-studio MCP tools — prefer them for changes (they apply live in the editor and are undoable; use set_sounds/set_values for bulk edits, preview_frame to look, save to write into the code). Edit source files directly only for structural changes the tools cannot express. CLAUDE.md has the full inventory. Reply with one line confirming you are connected (call get_project), then wait for instructions.";
     const q = (s) => "'" + s.replace(/'/g, `'\\''`) + "'";
-    const cmd = `cd ${q(dir)} && clear && ${q(claude)} ${q(kickoff)}`;
+    const cmd = `cd ${q(dir)} && clear && ${q(claude)} --mcp-config ${q(mcpConfigPath)} ${q(kickoff)}`;
     const script = `tell application "Terminal"
   activate
   do script ${JSON.stringify(cmd)}
@@ -199,9 +202,7 @@ end tell`;
 
 // ---------- audio files ----------
 const AUDIO_EXT = /\.(wav|mp3|m4a|aac|ogg|flac|webm)$/i;
-app.get("/api/audio/list", (_req, res) => {
-  const dir = process.env.INSYD_PROJECT;
-  if (!dir) return res.status(400).json({ error: "No project open" });
+const listAudio = (dir) => {
   const pub = path.join(dir, "public");
   const out = [];
   const walk = (d) => {
@@ -213,7 +214,12 @@ app.get("/api/audio/list", (_req, res) => {
     }
   };
   walk(pub);
-  res.json({ files: out.sort((a, b) => a.src.localeCompare(b.src)) });
+  return out.sort((a, b) => a.src.localeCompare(b.src));
+};
+app.get("/api/audio/list", (_req, res) => {
+  const dir = process.env.INSYD_PROJECT;
+  if (!dir) return res.status(400).json({ error: "No project open" });
+  res.json({ files: listAudio(dir) });
 });
 // Upload (base64 JSON) into public/<dir>/; returns the src to use in the layout/code.
 app.post("/api/audio/upload", async (req, res) => {
@@ -376,6 +382,31 @@ app.use((req, res, next) => {
   next();
 });
 
+// ---------- MCP (Claude control) ----------
+const MCP_URL = `http://localhost:${PORT}/mcp`;
+const stillCache = { serveUrl: null };
+mountMcp(app, {
+  projectDir: () => process.env.INSYD_PROJECT,
+  buildBrief: (payload) => { const dir = process.env.INSYD_PROJECT; return buildBrief({ dir, def: payload.def, scan: payload.scan, layout: payload.layout, index: buildIndex(dir), port: PORT }); },
+  listAudio: () => listAudio(process.env.INSYD_PROJECT),
+  renderJob: (id) => jobs.get(id),
+  still: async ({ frame, layout, width }) => {
+    const dir = process.env.INSYD_PROJECT;
+    const entry = fs.existsSync(path.join(dir, "src/index.ts")) ? "src/index.ts" : "src/index.tsx";
+    const serveUrl = await getBundle(dir, entry, () => {});
+    const compId = (await bridge.call("state")).id;
+    const composition = await selectComposition({ serveUrl, id: compId, inputProps: { layout } });
+    const out = path.join(os.tmpdir(), `insyd-still-${Date.now()}.jpg`);
+    await renderStill({ composition, serveUrl, output: out, frame, inputProps: { layout }, imageFormat: "jpeg", jpegQuality: 80, scale: width / composition.width });
+    const buf = await fsp.readFile(out); await fsp.rm(out, { force: true });
+    return buf;
+  },
+});
+app.get("/api/mcp/status", (_req, res) => res.json({ url: MCP_URL, editorConnected: bridge.connected() }));
+// MCP config file Claude Code can load with --mcp-config
+const mcpConfigPath = path.join(STATE_DIR, "mcp.json");
+fs.writeFileSync(mcpConfigPath, JSON.stringify({ mcpServers: { "insyd-studio": { type: "http", url: MCP_URL } } }, null, 2));
+
 // ---------- vite ----------
 // Production React by default: the dev build roughly doubles the per-frame cost of the hosted
 // composition. INSYD_DEV=1 switches back to the dev build (Fast Refresh, React warnings).
@@ -384,8 +415,10 @@ process.env.NODE_ENV = mode;
 vite = await createViteServer({ root: ROOT, mode, server: { middlewareMode: true, port: PORT, hmr: true }, appType: "spa" });
 app.use(vite.middlewares);
 
-app.listen(PORT, () => {
+const httpServer = http.createServer(app);
+attachBridge(httpServer);
+httpServer.listen(PORT, () => {
   const url = `http://localhost:${PORT}`;
-  console.log(`\n  Insyd Studio  →  ${url}\n  project: ${process.env.INSYD_PROJECT || "(none open)"}\n`);
+  console.log(`\n  Insyd Studio  →  ${url}\n  project: ${process.env.INSYD_PROJECT || "(none open)"}\n  MCP:     ${MCP_URL}\n`);
   if (!process.env.INSYD_NO_OPEN && process.platform === "darwin") exec("open", [url]).catch(() => {});
 });

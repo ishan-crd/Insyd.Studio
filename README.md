@@ -50,6 +50,19 @@ within a second**, keeping your playhead and selection. If it adds or removes el
 timeline rescans itself. The copy button next to it puts the same brief on the clipboard (and in
 `CLAUDE.md`) for any other tool. Requires the `claude` CLI on your PATH.
 
+## Claude control over MCP
+
+Studio runs an **MCP server** at `http://localhost:4321/mcp` (plug icon next to *Open in Claude Code*
+shows the setup). Any Claude that connects — Claude Code (`claude mcp add --transport http insyd-studio
+http://localhost:4321/mcp`; *Open in Claude Code* attaches it automatically for that session) or Claude
+Desktop (via `mcp-remote`) — gets 28 tools: read the project (`get_project`, `list_elements`,
+`list_sounds`, `list_values`, `get_context`), change it (`set_text`, `set_value(s)`, `update_element(s)`,
+`set_sound(s)` with bulk filters, `add_sound`, `remove_sound`, `set_scene_duration`), steer the UI
+(`select`, `seek`, `play`, `pause`, `undo`, `redo`), look at the result (`preview_frame` returns an image),
+and finish (`save` writes into the source, `export_video` + `export_status`). Tool calls run inside the
+open editor tab over a WebSocket bridge, so they appear live, are undoable, and the person sees a toast
+for each one. *"Set every whoosh to 10%"* is a single `set_sounds({ query: "whoosh", volume: 0.1 })`.
+
 ## Making a Remotion project editable
 
 Insyd Studio edits what a project *declares*. The contract is one file copied into the project
@@ -128,6 +141,7 @@ node scripts/snap.mjs         timeline + canvas snapping
 node scripts/thumbs.mjs       filmstrip thumbnails render, cache and load
 node scripts/preview.mjs      click-to-listen on the inspector waveform
 node scripts/claude.mjs       Claude Code hand-off: CLAUDE.md brief, live reload of external edits, auto-rescan
+node scripts/mcp.mjs          MCP: a real client drives the editor (bulk sound edit, values, move, preview image, save)
 node scripts/audio.mjs        audio tracks: drag/replace/volume/mute/add, save → code
 node scripts/playpause.mjs    play/pause through the real UI controls
 node scripts/perf.mjs    main-thread ms/frame during playback

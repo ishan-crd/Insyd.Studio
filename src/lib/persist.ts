@@ -25,7 +25,7 @@ export const popSession = () => {
 };
 
 /** Save: write every pending override into the source; keep the rest in layout.json; reload with state. */
-export const saveToCode = async () => {
+export const saveToCode = async (): Promise<{ changed: string[]; unresolved: Record<string, Record<string, unknown>> } | undefined> => {
   const s = useStore.getState();
   if (!s.def || s.saving) return;
   const pending = s.pending();
@@ -40,6 +40,7 @@ export const saveToCode = async () => {
     stashSession();
     s.setToast(files ? `Saved · ${files} file${files === 1 ? "" : "s"} updated${unresolved ? ` · ${unresolved} kept in layout.json` : ""}` : "Saved to layout.json");
     setTimeout(() => location.reload(), 350);
+    return { changed: r.changed, unresolved: r.unresolved };
   } catch (e: any) {
     s.setSaving(false);
     s.setToast("Save failed: " + e.message);

@@ -7,6 +7,7 @@ import { playerRef } from "./lib/player";
 import { registry } from "@project/sdk";
 import { ensureThumbs } from "./lib/thumbs";
 import { noteInventory } from "./lib/scan";
+import { connectBridge } from "./lib/bridge";
 import { OpenProject } from "./components/OpenProject";
 import { TopBar } from "./components/TopBar";
 import { Library } from "./components/Library";
@@ -34,6 +35,7 @@ export const App: React.FC = () => {
       if (n) useStore.getState().setToast(`Restored ${n} unsaved change${n === 1 ? "" : "s"}`);
       api.index().then((i) => { useStore.getState().setIndex(i); noteInventory(Object.keys(i.locators)); }).catch(() => {});
       setTimeout(ensureThumbs, 1500);
+      connectBridge();
       // restore UI state after a save-reload
       const sess = popSession();
       if (sess) {

@@ -54,3 +54,4 @@ export const Trash = () => <I d={["M4 7h16", "M10 11v6M14 11v6", "M6 7l1 14h10l1
 export const Mute = () => <I d={["M4 10v4h4l5 4V6L8 10z", "M17 9l4 6M21 9l-4 6"]} />;
 export const ClaudeMark = () => <I fill d="M12 2c.6 5.4 4.6 9.4 10 10-5.4.6-9.4 4.6-10 10-.6-5.4-4.6-9.4-10-10 5.4-.6 9.4-4.6 10-10z" />;
 export const Terminal = () => <I d={["M3 4h18v16H3z", "M7 9l3 3-3 3", "M12 15h5"]} />;
+export const Plug = () => <I d={["M9 3v5", "M15 3v5", "M6 8h12v3a6 6 0 0 1-12 0z", "M12 17v4"]} />;
