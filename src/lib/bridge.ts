@@ -1,7 +1,7 @@
 // Browser side of the editor bridge: executes MCP tool calls against the live store (one undo step
 // each) and reports back. Reconnects automatically.
 import { registry } from "@project/sdk";
-import { useStore, selectedOf } from "../state/store";
+import { useStore } from "../state/store";
 import { usePlayback } from "../state/playback";
 import { playerRef, seek } from "./player";
 import { saveToCode } from "./persist";
@@ -104,7 +104,7 @@ export const connectBridge = () => {
   try { ws = new WebSocket(url); } catch { return; }
   ws.onmessage = async (ev) => {
     let msg: any; try { msg = JSON.parse(ev.data); } catch { return; }
-    if (msg.event === "mcp") { useStore.getState().setToast(`Claude: ${msg.data?.summary ?? "change applied"}`); return; }
+    if (msg.event === "mcp") { useStore.getState().setToast(`Claude ${msg.data?.summary ?? "made a change"}`); return; }
     if (msg.id === undefined) return;
     try { const result = await handle(msg.method, msg.params ?? {}); ws?.send(JSON.stringify({ id: msg.id, result })); }
     catch (e: any) { ws?.send(JSON.stringify({ id: msg.id, error: e.message ?? String(e) })); }
@@ -112,4 +112,3 @@ export const connectBridge = () => {
   ws.onclose = () => { window.clearTimeout(timer); timer = window.setTimeout(connectBridge, 1500); };
   ws.onerror = () => ws?.close();
 };
-void selectedOf; // (re-exported helpers kept for future actions)

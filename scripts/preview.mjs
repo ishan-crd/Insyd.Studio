@@ -14,7 +14,8 @@ check("waveform is clickable with a play affordance", await box.count() === 1 &&
 await box.click(); await page.waitForTimeout(150);
 let p = await P();
 check("clicking the waveform starts playback of that clip", p.playing && !p.paused && p.id === "search.sfx2", JSON.stringify(p));
-check("plays at the clip's volume", p.volume !== null && Math.abs(p.volume - 0.5) < 1e-6, `volume=${p.volume}`);
+const want = (+await page.inputValue(".insp .field:has(label:has-text('Volume')) input[type=number]")) / 100;
+check("plays at the clip's volume", p.volume !== null && Math.abs(p.volume - want) < 1e-6, `volume=${p.volume} (clip ${want})`);
 await page.waitForTimeout(200);
 const p2 = await P(); check("playhead sweeps across the waveform", p2.progress > p.progress && !!(await page.$(".wave-cursor")), `${p.progress.toFixed(2)} → ${p2.progress.toFixed(2)}`);
 await page.waitForTimeout(700);

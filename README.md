@@ -3,69 +3,55 @@
 
 # Studio by Insyd
 
-An iMovie-style editor for **Remotion** projects. Open a Remotion project folder, see every scene and
-every element on a timeline, edit text, colours, sizes, backgrounds, positions and animations by hand,
-and export an MP4. **Save writes your changes back into the project's source files** — the code stays
-the single source of truth, so the same edits show up in Remotion Studio and `npx remotion render`.
+A desktop-grade video editor for **Remotion** projects, with Claude built in.
+
+Open a Remotion project, see every scene, element and sound on a timeline, and edit text, colours,
+sizes, backgrounds, positions, timing, animations and audio by hand — or ask Claude. **Save writes the
+changes back into the project's source files**, so the video stays real code and renders identically
+everywhere.
 
 ```
 npm install
-npm run dev        # → http://localhost:4321 (opens automatically)
+npm run dev          # → http://localhost:4321
 ```
+Then **Browse…** to a project folder and **Open project**. Requires macOS, Node 18+, and a Remotion
+project prepared for Studio (see *Making a project editable*).
 
-Then **Browse…** to a project folder (or paste its path) and **Open project**.
+## What you can do
 
-## What you can edit
-
-| Where | What |
+| | |
 |---|---|
-| **Preview** | Click any element to select it (innermost wins). Drag to move; corner handles scale; `⇧`-drag constrains; elements snap to the canvas centre and to other elements' edges and centres (hold `⌥` to bypass). `⇧`/`⌘`-click adds elements to the selection; dragging, arrow-nudging and `⌫` then act on the whole group. Double-click text to jump to its text box. |
-| **Inspector → Text** | The element's copy (`useCopy`). `\|` = line break where the template supports it. |
-| **Inspector → Transform / Timing** | X / Y, scale, rotation, opacity, visibility, and *Shift* (frames earlier/later). |
-| **Inspector → Properties** | Every `edit()` value the template declares for that element: sizes with sliders, colours with a picker, toggles, enums. |
-| **Clips (elements & sounds)** | Right-click any clip in the timeline or any element on the canvas: **Cut / Copy / Paste at playhead** (relative offsets kept), **Duplicate**, **Split at playhead**, **Hide / Mute**, **Lock**, **Delete** — also `⌘X/C/V/D/K/L`, `H`, `M`, `⌫`. Drag a clip's edges to trim. Elements are code, so copies are **linked instances** that render the original's content with their own position/timing (stored in `layout.json`, kept inside the source's scene); deleting a code-declared element hides it. Split works through a visibility window (`trimIn`/`trimOut`) written back to the `<Editable>`. |
-| **Inspector (multi-selection)** | With several items selected, only the fields they all share are shown — volume / mute / move / replace-file for sounds; move / scale / rotation / opacity / visibility / shift plus any property they all declare (e.g. *Size* across headlines) for elements. Values that differ are marked *Mixed*; every change applies to all of them as one undo step. |
-| **Inspector → Animation** | Every `useAnim()` entrance: delay, motion (spring presets / custom physics / bezier), and the *from* values (x, y, scale, opacity, rotation, blur), with a live curve preview. |
-| **Scene** (click a scene block or "Scene settings") | Duration, plus scene-level properties such as panel colours and wipe lengths. |
-| **Brand** tab | Global tokens declared with `brand()`: palette, backgrounds, fonts. Change one and every scene follows. |
-| **Audio** (bottom of the timeline) | Every `<Sound>` as a clip with its waveform: sound effects packed into lanes above the **Music** lane. Drag a clip to re-time it (`⇧`-click to move several together), click it to edit **volume**, **mute**, **start**, or **Replace…** the file (click the waveform in the inspector to **listen** to that clip once) with any audio in `public/` or an upload. **+ Sound** drops a new file at the playhead. Right-click any sound clip (or use `⌘C/⌘X/⌘V/⌘D/⌘K/⌘L`, `M`, `⌫`) to copy, cut, paste at the playhead (relative offsets kept), duplicate, split at the playhead, mute, lock or delete; drag a clip's edges to trim it. Saved as `shift` / `volume` / `muted` / `src` props on the `<Sound>` in code; added sounds live in `layout.json` and play everywhere via `<LayoutSounds/>`. |
-| **Timeline** | *Scenes* track pinned under the ruler, each scene showing a **filmstrip of real frames** (rendered in the background and cached; refreshed after Save): drag a scene's right edge to trim it. One clip per element: drag to shift it in time; drag the bright bar inside a clip to re-time that element's entrance. **`⇧`-click clips to select several (`⌘`-click toggles), or drag a selection box on empty track space like on the desktop (`⇧` adds), then drag any of them to slide the whole group.** Clips **snap** to other clips, scene cuts and the playhead while dragging or trimming (pink guide; hold `⌥` to bypass). Ruler scrubs; zoom; resizable. |
+| **Preview** | Click to select (innermost element wins), drag to move, corner handles to scale, `⇧` constrains, snapping to the canvas centre and to other elements with guides, `⇧`/`⌘`-click and box-select for groups. |
+| **Inspector** | Text · position / scale / rotation / opacity / visibility · timing (shift, visible window) · every `edit()` property (sliders, colour pickers, toggles, enums) · animation editor (delay, spring presets or physics or bezier, from-values, curve preview) · lock. With several items selected, only shared fields show; edits apply to all. |
+| **Brand** | Global tokens (`brand()`): palette, backgrounds, fonts — change once, every scene follows. |
+| **Sounds** | Every `<Sound>` on the timeline with its waveform (effects in lanes over the music). Click the waveform in the inspector to listen. Volume, mute, trim, start, replace file (from `public/` or upload), `+ Sound` at the playhead. |
+| **Timeline** | Scenes track with filmstrip thumbnails and trimmable scenes · a clip per element with its entrance bar · audio lanes · drag, trim, split at playhead, duplicate (linked copies), copy/cut/paste at playhead, lock, hide/mute, delete · snapping to clips, cuts and the playhead · box selection · context menus · zoom, resize. |
+| **Save / Export** | `⌘S` rewrites the literals in the source (`edit`, `brand`, `useCopy`, `useAnim`, `<Editable>` attributes, `<Sound>` attributes, scene durations); anything without a code literal is kept in `layout.json`. **Export** renders an MP4 with progress. Unsaved edits survive reloads as a draft; full undo/redo. `?` lists every shortcut. |
 
-`⌘S` **saves into the source**: literals are rewritten in place (`edit("id", 108)` → `edit("id", 140)`,
-`useCopy(...)` text, `brand(...)` tokens, `useAnim(...)` specs, `<Editable x={…} y={…}>` attributes, scene
-`duration:` numbers), the editor reloads, and the composition now renders those values from code with
-nothing pending. Anything without a literal in the code is kept in `layout.json` (marked *json* in the
-Inspector). Unsaved edits survive reloads (restored as a draft) and `⌘Z` / `⇧⌘Z` undo/redo everything.
-**Export** renders exactly what you see to your Desktop with progress, then *Reveal in Finder*.
-`?` (key or top-bar button) opens the full shortcuts reference; `⌘A` selects every element (or every sound when a sound is selected); `⌘+` / `⌘−` / `⌘0` zoom the timeline; the lock icon on a scene header or on the Sound effects / Music lane locks everything on that track.
+## Claude
 
-## Open in Claude Code
+Studio runs an **MCP server** at `http://localhost:4321/mcp`. A connected Claude gets 28 tools to read the
+project (`get_project`, `list_elements`, `list_sounds`, `list_values`, `get_context`), change it
+(`set_text`, `set_value(s)`, `update_element(s)`, `set_sound(s)` with bulk filters, `add_sound`,
+`set_scene_duration`), steer the UI (`select`, `seek`, `play`, `undo`), **see the result**
+(`preview_frame` returns an image), and finish (`save`, `export_video`). Calls run inside the open
+editor tab, so they are live, undoable, and announced with a toast. *"Set every whoosh to 10%"* is one
+`set_sounds({ query: "whoosh", volume: 0.1 })`.
 
-The **Open in Claude Code** button hands the whole project to Claude Code with Studio still watching:
-it writes a *Studio section* into the project's `CLAUDE.md` — the editing contract plus every scene,
-element, sound, text and editable value with its current value and file — opens Terminal in the
-project folder and starts `claude` with a kickoff prompt. Ask it things like *"reduce the volume of all
-whoosh clips to 10%"* or *"move the phone 40px left"*; it edits the source and **the preview reloads
-within a second**, keeping your playhead and selection. If it adds or removes elements or sounds, the
-timeline rescans itself. The copy button next to it puts the same brief on the clipboard (and in
-`CLAUDE.md`) for any other tool. Requires the `claude` CLI on your PATH.
+- **Open in Claude Code** (top bar) writes the full brief into the project's `CLAUDE.md`, opens Terminal
+  in the project and starts `claude` with the MCP attached and a kickoff prompt. If the CLI is missing,
+  the dialog shows the install command.
+- **Claude & Studio dialog** (plug icon) shows the connection status and the one-liners for a permanent
+  Claude Code setup (`claude mcp add --transport http insyd-studio http://localhost:4321/mcp`) and for
+  Claude Desktop (`mcp-remote`).
+- Edits Claude makes directly to files also show up: the preview reloads within a second, keeps your
+  playhead and selection, and the timeline rescans itself if elements or sounds were added.
 
-## Claude control over MCP
-
-Studio runs an **MCP server** at `http://localhost:4321/mcp` (plug icon next to *Open in Claude Code*
-shows the setup). Any Claude that connects — Claude Code (`claude mcp add --transport http insyd-studio
-http://localhost:4321/mcp`; *Open in Claude Code* attaches it automatically for that session) or Claude
-Desktop (via `mcp-remote`) — gets 28 tools: read the project (`get_project`, `list_elements`,
-`list_sounds`, `list_values`, `get_context`), change it (`set_text`, `set_value(s)`, `update_element(s)`,
-`set_sound(s)` with bulk filters, `add_sound`, `remove_sound`, `set_scene_duration`), steer the UI
-(`select`, `seek`, `play`, `pause`, `undo`, `redo`), look at the result (`preview_frame` returns an image),
-and finish (`save` writes into the source, `export_video` + `export_status`). Tool calls run inside the
-open editor tab over a WebSocket bridge, so they appear live, are undoable, and the person sees a toast
-for each one. *"Set every whoosh to 10%"* is a single `set_sounds({ query: "whoosh", volume: 0.1 })`.
+The server binds to `127.0.0.1` (the MCP endpoint can edit your files); set `INSYD_HOST=0.0.0.0` to expose it.
 
 ## Making a Remotion project editable
 
-Insyd Studio edits what a project *declares*. The contract is one file copied into the project
+Studio edits what a project *declares*. The contract is one file copied into the project
 (`src/insyd/index.tsx`) plus a few conventions:
 
 ```bash
@@ -73,78 +59,46 @@ node scripts/init-project.mjs /path/to/project   # or "Install SDK into project"
 ```
 
 ```tsx
-import { Editable, edit, brand, useCopy, useAnim, useAnimSpec, sceneDuration } from "./insyd";
+import { Editable, edit, brand, useCopy, useAnim, useAnimSpec, Sound, LayoutSounds, sceneDuration } from "./insyd";
 
-// 1. Wrap what people may move / scale / hide / re-time. Transform props are the saved defaults.
-<Editable id="hero.card" label="Hero card" x={0} y={0}>
-  <Card width={edit("hero.card.width", 880, { min: 600, max: 1100, step: 10, unit: "px" })} />
+<Editable id="hero.card" label="Hero card" x={0} y={0}>            // 1. movable / scalable / hideable / re-timeable
+  <Card width={edit("hero.card.width", 880, { min: 600, max: 1100, step: 10, unit: "px" })} />   // 3. any literal
 </Editable>
-
-// 2. Text
-const title = useCopy("hero.title", "Meet the|new thing");
-
-// 3. Any literal: number, colour, string, boolean, enum
-const panel = edit("hero.panel.color", "#2B6BF3", { label: "Panel" });
-
-// 4. Entrances (returns progress + offsets/style at the current frame)
-const card = useAnim("hero.card.in", { delay: 6, preset: "smooth", from: { x: -1000 } });
-<div style={{ transform: `translateX(${card.x}px)` }} />
-// staggered children: const spec = useAnimSpec("hero.title.in", { stagger: 3, preset: "snappy", from: { y: 34, opacity: 0 } }); animAt(spec, frame - i * spec.stagger, fps).style
-
-// 5. Brand tokens — usable outside components (e.g. theme getters)
-get hero() { return brand("brand.hero", "#E9573F", { label: "Hero", group: "Colors" }); }
-
-// 6. Sounds — every sound effect / music bed is a <Sound> so it shows on the audio tracks
-<Sound id="hero.whoosh" src="sfx/whoosh.wav" at={12} volume={0.7} label="Whoosh" />
-<Sound id="music.bed" src="music/bed.mp3" at={0} volume={0.25} kind="music" label="Music bed" />
-<LayoutSounds />   // once, in the root: plays sounds people add in the editor
-
-// 7. Scene lengths in a literal table the editor can rewrite
-export const SCENES = [{ id: "intro", label: "Intro", component: Intro, duration: 90 }, …];
+const title = useCopy("hero.title", "Meet the|new thing");          // 2. text
+const card = useAnim("hero.card.in", { delay: 6, preset: "smooth", from: { x: -1000 } });   // 4. entrances
+get hero() { return brand("brand.hero", "#E9573F", { label: "Hero", group: "Colors" }); }   // 5. brand tokens (theme getters)
+<Sound id="hero.whoosh" src="sfx/whoosh.wav" at={12} volume={0.7} label="Whoosh" />            // 6. sounds
+<LayoutSounds />                                                     //    once in the root: sounds added in the editor
+export const SCENES = [{ id: "intro", label: "Intro", component: Intro, duration: 90 }, …];      // 7. scene table (literal durations)
 <Sequence durationInFrames={sceneDuration(layout, "intro", 90)}>…</Sequence>
 ```
 
-Rules that make the round-trip work:
-- The **default must be a literal** in the source (a number, string, boolean or object of literals); that literal is what Save rewrites.
-- Ids are dotted: `scene.element.prop`. A prop whose id starts with an element's id belongs to that element in the Inspector; otherwise it shows under the scene named by its first segment; `brand.*` goes to the Brand tab.
-- The composition takes `{ layout }` as a prop and wraps its tree in `<LayoutProvider layout={layout}>`; `src/editor.ts` exports `defineProject({...})` (id, name, component, size, fps, scenes, entryPoint, `registerBrand` to pre-register tokens).
-
-See `~/superconductor/projects/thumb-mcp/video` for a complete example (the thumb MCP launch video:
-30 elements, 80+ editable values, 20 animations, 17 brand tokens, 91 sounds).
+Rules: defaults are **literals** in the source (that is what Save rewrites); ids are dotted
+`scene.element.prop` (a prop whose id starts with an element id belongs to that element; `brand.*` is
+global); the composition takes `{ layout }` and wraps its tree in `<LayoutProvider layout={layout}>`;
+`src/editor.ts` exports `defineProject({...})`. `~/Desktop/thumb-launch-wannabe` and
+`~/superconductor/projects/thumb-mcp/video` are complete examples.
 
 ## How it works
 
-- The editor hosts the project's composition in `@remotion/player` (same React and Remotion via Vite
-  `dedupe`; production React build for smooth playback) and passes the overrides as `inputProps`, so
-  every edit is live.
-- `<Editable>` registers its DOM node with a registry; hit-testing uses `elementsFromPoint`, and only
-  the hovered/selected element is measured per frame. On open, Insyd Studio steps through the video once to
-  learn when every element is on screen (cached; **Rescan** refreshes it).
-- Scene filmstrips come from one background `renderFrames` pass per project state (every 15th frame at 160px), cached under `.insyd/thumbs/` and keyed by the source, assets and layout mtimes.
-- `server/codemod.mjs` parses the project with Babel, indexes every locator (`call:`, `jsx:`,
-  `scene:`) and rewrites literals with magic-string, preserving formatting. `server/index.mjs` serves
-  the app and the project's `public/`, runs saves and `@remotion/renderer` exports.
+- The editor hosts the project's composition in `@remotion/player` (one React/Remotion via Vite
+  `dedupe`, production React build) and passes overrides as `inputProps`, so edits are live.
+- `<Editable>`/`<Sound>` register with a registry; hit-testing uses the DOM; on open, a hidden second
+  player steps through the video once to learn when everything is on screen (cached; rescans when the
+  code's inventory changes). Filmstrips come from one background `renderFrames` pass, cached.
+- `server/codemod.mjs` indexes every editable literal with Babel and rewrites them in place;
+  `server/mcp.mjs` + `server/bridge.mjs` expose the editor over MCP through a WebSocket bridge to the tab;
+  `server/context.mjs` writes the Claude brief.
 
 ## Scripts
 
 ```
-npm run dev              start the editor
-npm run init <dir>       install the SDK into a project
-node scripts/e2e.mjs     browser end-to-end test (33 checks incl. save → source diff → reload)
-node scripts/multiselect.mjs  multi-select + group move (timeline and canvas)
-node scripts/marquee.mjs      rubber-band selection in the timeline
-node scripts/groupedit.mjs    group inspector: shared fields, edits applied to every selected item
-node scripts/clips.mjs        sound clip vocabulary: menu, split, trim, copy/paste, duplicate, delete, lock
-node scripts/elclips.mjs      element clip vocabulary: linked copies, split/trim windows, delete/hide, lock
-node scripts/shortcuts.mjs    ⌘A, zoom shortcuts, shortcuts modal, track locks
-node scripts/snap.mjs         timeline + canvas snapping
-node scripts/thumbs.mjs       filmstrip thumbnails render, cache and load
-node scripts/preview.mjs      click-to-listen on the inspector waveform
-node scripts/claude.mjs       Claude Code hand-off: CLAUDE.md brief, live reload of external edits, auto-rescan
-node scripts/mcp.mjs          MCP: a real client drives the editor (bulk sound edit, values, move, preview image, save)
-node scripts/audio.mjs        audio tracks: drag/replace/volume/mute/add, save → code
-node scripts/playpause.mjs    play/pause through the real UI controls
-node scripts/perf.mjs    main-thread ms/frame during playback
-node scripts/profile.mjs CPU profile of playback
+npm run dev / start          start Studio
+npm run init <dir>           install the SDK into a project
+node scripts/e2e.mjs         edit → save → source diff → reload (33 checks)
+node scripts/mcp.mjs         a real MCP client drives the editor (24)
+node scripts/claude.mjs      Claude Code hand-off + live reload of external edits (12)
+node scripts/playpause.mjs · multiselect · marquee · groupedit · clips · elclips · audio · snap · shortcuts · thumbs · preview
+node scripts/perf.mjs        main-thread ms/frame during playback
 ```
-Set `CHROME=/path/to/chromium` if Playwright's bundled browser is not installed.
+Tests use Playwright's Chromium (`CHROME=/path/to/chromium` to override).

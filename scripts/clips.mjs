@@ -30,25 +30,32 @@ await page.keyboard.press("Escape");
 
 // ---- split the music at the playhead (⌘K)
 await page.evaluate(() => { window.__insydPlayer.seekTo(600); window.__insydStore.getState().select({ type: "sound", id: "music.bed" }); }); await page.waitForTimeout(300);
+// the music may carry a code-default shift (e.g. shift={-10}); the head length is measured from the clip's real start
+const mStart = +(await page.getAttribute('.aclip[data-clip-id="music.bed"]', "title")).match(/starts f(-?\d+)/)[1];
+const HEAD = 600 - mStart;
 await page.keyboard.press("Meta+k"); await page.waitForTimeout(400);
 let s = await S();
-const part2 = Object.entries(s.sounds).find(([k, v]) => k.startsWith("added.") && v.trimStart === 600);
-check("⌘K splits the music into head (duration) + tail (added, trimmed)", s.sounds["music.bed"]?.duration === 600 && !!part2 && part2[1].at === 600 && part2[1].src === "sfx/bed.wav", JSON.stringify({ head: s.sounds["music.bed"], tail: part2?.[1] }));
+const part2 = Object.entries(s.sounds).find(([k, v]) => k.startsWith("added.") && v.trimStart === HEAD);
+check("⌘K splits the music into head (duration) + tail (added, trimmed)", s.sounds["music.bed"]?.duration === HEAD && !!part2 && part2[1].at === 600 && part2[1].src === "sfx/bed.wav", JSON.stringify({ head: s.sounds["music.bed"], tail: part2?.[1], start: mStart }));
 check("two music clips now on the Music lane", (await page.$$('.aclip[title^="Music bed"]')).length === 2);
-check("tail is mounted in the player with startFrom", await page.evaluate(() => window.__insydRegistry.getSounds("main").some((x) => x.id.startsWith("added.") && x.trimStart === 600 && x.absStart === 600)));
+check("tail is mounted in the player with startFrom", await page.evaluate((HEAD) => window.__insydRegistry.getSounds("main").some((x) => x.id.startsWith("added.") && x.trimStart === HEAD && x.absStart === 600), HEAD));
 await page.evaluate(() => window.__insydStore.getState().undo()); await page.waitForTimeout(200);
 s = await S(); check("undo restores the unsplit music", s.sounds["music.bed"] === undefined && !Object.keys(s.sounds).some((k) => k.startsWith("added.")));
 
 // ---- trim handles (on the wide music clip)
+// a clip that starts before frame 0 has no reachable left edge — bring it to 0 first (one extra undo step below)
+const nudged = mStart < 0;
+if (nudged) await page.evaluate(() => window.__insydStore.getState().setSound("music.bed", { shift: 0 }, true));
+const tStart = nudged ? 0 : mStart;
 await page.evaluate(() => window.__insydStore.getState().select({ type: "sound", id: "music.bed" })); await page.waitForTimeout(150);
 mb = await clipBox("Music bed");
 await dragMouse(mb.x + mb.width - 3, mb.y + mb.height / 2, mb.x + mb.width - 63, mb.y + mb.height / 2);
 s = await S(); check("dragging the right edge trims the end (duration set)", typeof s.sounds["music.bed"]?.duration === "number" && s.sounds["music.bed"].duration < 1550, JSON.stringify(s.sounds["music.bed"]));
 mb = await clipBox("Music bed");
 await dragMouse(mb.x + 3, mb.y + mb.height / 2, mb.x + 43, mb.y + mb.height / 2);
-s = await S(); check("dragging the left edge trims the start (trimStart + shift, end stays)", (s.sounds["music.bed"]?.trimStart ?? 0) > 0 && s.sounds["music.bed"]?.shift === s.sounds["music.bed"]?.trimStart, JSON.stringify(s.sounds["music.bed"]));
-check("trimmed clip plays from the trimmed offset", await page.evaluate(() => { const x = window.__insydRegistry.getSounds("main").find((x) => x.id === "music.bed"); return x && x.trimStart > 0 && x.absStart === x.trimStart; }));
-await page.evaluate(() => { const st = window.__insydStore.getState(); st.undo(); st.undo(); });
+s = await S(); check("dragging the left edge trims the start (trimStart + shift, end stays)", (s.sounds["music.bed"]?.trimStart ?? 0) > 0 && s.sounds["music.bed"]?.shift === tStart + s.sounds["music.bed"]?.trimStart, JSON.stringify(s.sounds["music.bed"]));
+check("trimmed clip plays from the trimmed offset", await page.evaluate((tStart) => { const x = window.__insydRegistry.getSounds("main").find((x) => x.id === "music.bed"); return x && x.trimStart > 0 && x.absStart === tStart + x.trimStart; }, tStart));
+await page.evaluate((n) => { const st = window.__insydStore.getState(); for (let i = 0; i < n; i++) st.undo(); }, nudged ? 3 : 2);
 const wh = await page.$$('.aclip[title^="Whoosh"]'); const w0 = await wh[0].boundingBox();
 await page.mouse.click(w0.x + w0.width / 2, w0.y + w0.height / 2); await page.waitForTimeout(150);
 s = await S(); const wid = s.sel.id;
@@ -98,11 +105,11 @@ await page.keyboard.press("Meta+s");
 await page.waitForFunction(() => document.body.innerText.includes("Saved"), null, { timeout: 30000 }).catch(() => {});
 await page.waitForTimeout(2500);
 const root = fs.readFileSync(path.join(PROJECT, "src/Root.tsx"), "utf8");
-check("Root.tsx: split head written as duration attr", /<Sound id="music.bed"[^>]*duration=\{600\}/.test(root), root.match(/<Sound id="music.bed"[^>]*>/)?.[0]);
+check("Root.tsx: split head written as duration attr", new RegExp(`<Sound id="music.bed"[^>]*duration=\\{${HEAD}\\}`).test(root), root.match(/<Sound id="music.bed"[^>]*>/)?.[0]);
 const cta = fs.readFileSync(path.join(PROJECT, "src/scenes/SceneCTA.tsx"), "utf8");
 check("SceneCTA.tsx: lock written as attr", /<Sfx id="cta.sfx1" locked /.test(cta));
 const lj = JSON.parse(fs.readFileSync(path.join(PROJECT, "layout.json"), "utf8"));
-check("split tail persisted in layout.json", Object.values(lj.sounds ?? {}).some((v) => v.added && v.trimStart === 600 && v.src === "sfx/bed.wav"));
+check("split tail persisted in layout.json", Object.values(lj.sounds ?? {}).some((v) => v.added && v.trimStart === HEAD && v.src === "sfx/bed.wav"));
 check("no page errors", errors.length === 0, errors.slice(0, 2).join(" | "));
 console.log(`${results.filter(Boolean).length}/${results.length} passed`);
 await browser.close();

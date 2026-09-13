@@ -21,8 +21,8 @@ await volInput.fill("4"); await volInput.dispatchEvent("change"); await page.wai
 let vols = await page.evaluate(() => { const s = window.__insydStore.getState(); return s.scan.sounds.map((x) => s.layout.sounds[x.id]?.volume); });
 check("volume applies to every selected sound", vols.length > 60 && vols.every((v) => Math.abs(v - 0.04) < 1e-9), `${vols.filter((v) => Math.abs(v - 0.04) < 1e-9).length}/${vols.length} at 4%`);
 check("the composition plays them at the new level", await page.evaluate(() => window.__insydRegistry.getSounds("main").every((x) => Math.abs(x.volume - 0.04) < 1e-9)));
-check("Mixed tag gone once all match", !/Volume[\s\S]{0,40}Mixed/.test(await page.innerText(".insp")));
-check("one undo step reverts the whole group", await page.evaluate(async () => { const n0 = window.__insydStore.getState().past.length; window.__insydStore.getState().undo(); const s = window.__insydStore.getState(); return n0 >= 1 && s.scan.sounds.every((x) => s.layout.sounds[x.id]?.volume === undefined); }));
+check("Mixed tag gone once all match", !/Mixed/.test(await page.innerText(".insp .field:has(label:has-text('Volume'))")));
+check("one undo step reverts the whole group", await page.evaluate(async () => { const n0 = window.__insydStore.getState().past.length; window.__insydStore.getState().undo(); const s = window.__insydStore.getState(); return n0 >= 1 && s.scan.sounds.every((x) => s.layout.sounds[x.id]?.volume === s.saved.sounds[x.id]?.volume); }));
 // mute all via the switch
 await page.locator(".insp .field:has(label:has-text('Muted')) input[type=checkbox]").click(); await page.waitForTimeout(300);
 check("mute switch mutes every selected sound", await page.evaluate(() => { const s = window.__insydStore.getState(); return s.scan.sounds.every((x) => s.layout.sounds[x.id]?.muted === true); }));

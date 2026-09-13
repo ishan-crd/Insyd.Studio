@@ -26,9 +26,11 @@ export const createMcpServer = (ctx) => {
   // mutations go through the tab; notify the UI so it can toast what happened
   const mutate = async (summary, action, args) => {
     const r = await need("apply", { action, args });
-    bridge.notify("mcp", { summary });
+    const n = r && Array.isArray(r.changed) ? r.changed.length : null;
+    bridge.notify("mcp", { summary: typeof summary === "function" ? summary(n) : summary });
     return r;
   };
+  const pct = (v) => (v === undefined ? "" : ` · volume ${Math.round(v * 100)}%`);
 
   server.registerTool("get_project", { title: "Project overview", description: "Composition size/fps/duration, scenes with start frames, counts, whether the editor tab is connected, unsaved change counts, playhead and selection.", inputSchema: {} }, async () => {
     try {
@@ -71,39 +73,39 @@ export const createMcpServer = (ctx) => {
   });
 
   server.registerTool("set_text", { title: "Set text", description: "Change a text value (useCopy id). Use | for a line break where the template supports it.", inputSchema: { id: z.string(), text: z.string() } }, async ({ id, text: t }) => {
-    try { await mutate(`text ${id}`, "setCopy", { id, text: t }); return text({ ok: true, id, text: t }); } catch (e) { return err(e); }
+    try { await mutate(`changed the text of ${id}`, "setCopy", { id, text: t }); return text({ ok: true, id, text: t }); } catch (e) { return err(e); }
   });
   server.registerTool("set_value", { title: "Set an editable value", description: "Change an edit()/brand()/animation value by id. Numbers, colours ('#E9573F'), booleans, enum strings, or for animations an object like {delay: 12, preset: 'bouncy', from: {y: 40, opacity: 0}} (merged onto the current spec).", inputSchema: { id: z.string(), value: z.any() } }, async ({ id, value }) => {
-    try { await mutate(`${id} = ${JSON.stringify(value)}`, "setProp", { id, value }); return text({ ok: true, id, value }); } catch (e) { return err(e); }
+    try { await mutate(`set ${id} to ${JSON.stringify(value)}`, "setProp", { id, value }); return text({ ok: true, id, value }); } catch (e) { return err(e); }
   });
   server.registerTool("set_values", { title: "Set many values", description: "Batch of {id, value} changes applied as one undo step.", inputSchema: { changes: z.array(z.object({ id: z.string(), value: z.any() })) } }, async ({ changes }) => {
-    try { await mutate(`${changes.length} values`, "setProps", { changes }); return text({ ok: true, count: changes.length }); } catch (e) { return err(e); }
+    try { await mutate(`changed ${changes.length} values`, "setProps", { changes }); return text({ ok: true, count: changes.length }); } catch (e) { return err(e); }
   });
   const transformSchema = { x: z.number().optional(), y: z.number().optional(), dx: z.number().optional(), dy: z.number().optional(), scale: z.number().optional(), rotate: z.number().optional(), opacity: z.number().optional(), hidden: z.boolean().optional(), delay: z.number().optional(), trimIn: z.number().optional(), trimOut: z.number().nullable().optional(), locked: z.boolean().optional() };
   server.registerTool("update_element", { title: "Move / scale / hide / re-time an element", description: "Set transform fields on one element: x, y (or relative dx, dy), scale, rotate, opacity, hidden, delay (frames), trimIn/trimOut (visibility window in its own frames), locked.", inputSchema: { id: z.string(), ...transformSchema } }, async ({ id, ...patch }) => {
-    try { const r = await mutate(`element ${id}`, "updateElements", { ids: [id], patch }); return text({ ok: true, ...r }); } catch (e) { return err(e); }
+    try { const r = await mutate(`updated ${id}`, "updateElements", { ids: [id], patch }); return text({ ok: true, ...r }); } catch (e) { return err(e); }
   });
   server.registerTool("update_elements", { title: "Update several elements", description: "Apply the same transform patch to many elements (ids, or all elements of a scene).", inputSchema: { ids: z.array(z.string()).optional(), scene: z.string().optional(), ...transformSchema } }, async ({ ids, scene, ...patch }) => {
-    try { const r = await mutate(`${ids?.length ?? "scene"} elements`, "updateElements", { ids, scene, patch }); return text({ ok: true, ...r }); } catch (e) { return err(e); }
+    try { const r = await mutate((n) => `updated ${n} elements`, "updateElements", { ids, scene, patch }); return text({ ok: true, ...r }); } catch (e) { return err(e); }
   });
   const soundPatch = { volume: z.number().min(0).max(2).optional().describe("0–1 (1 = 100%)"), muted: z.boolean().optional(), shift: z.number().optional().describe("frames later (negative = earlier); relative to the code timing"), dshift: z.number().optional().describe("move by this many frames from the current position"), src: z.string().optional().describe("replacement file relative to public/, e.g. sfx/pop.wav"), trimStart: z.number().optional(), duration: z.number().nullable().optional(), locked: z.boolean().optional() };
   server.registerTool("set_sound", { title: "Change one sound", description: "Volume, mute, timing (shift/dshift), file, trim or lock for one sound id.", inputSchema: { id: z.string(), ...soundPatch } }, async ({ id, ...patch }) => {
-    try { const r = await mutate(`sound ${id}`, "setSounds", { ids: [id], patch }); return text({ ok: true, ...r }); } catch (e) { return err(e); }
+    try { const r = await mutate(`changed sound ${id}${pct(patch.volume)}`, "setSounds", { ids: [id], patch }); return text({ ok: true, ...r }); } catch (e) { return err(e); }
   });
   server.registerTool("set_sounds", { title: "Change many sounds", description: "Apply the same change to every sound matching a filter — e.g. {query: 'whoosh', volume: 0.1} sets all whooshes to 10%. Filter by ids, a query (id/label/file contains), or kind. One undo step.", inputSchema: { ids: z.array(z.string()).optional(), query: z.string().optional(), kind: z.enum(["sfx", "music", "voice"]).optional(), ...soundPatch } }, async ({ ids, query, kind, ...patch }) => {
-    try { const r = await mutate(`sounds ${query ?? kind ?? ids?.length}`, "setSounds", { ids, query, kind, patch }); return text({ ok: true, ...r }); } catch (e) { return err(e); }
+    try { const r = await mutate((n) => `changed ${n} sounds${query ? ` matching “${query}”` : ""}${pct(patch.volume)}${patch.muted !== undefined ? (patch.muted ? " · muted" : " · unmuted") : ""}`, "setSounds", { ids, query, kind, patch }); return text({ ok: true, ...r }); } catch (e) { return err(e); }
   });
   server.registerTool("add_sound", { title: "Add a sound", description: "Place an audio file from public/ (see list_audio_files) at a frame.", inputSchema: { src: z.string(), at: z.number(), volume: z.number().optional(), kind: z.enum(["sfx", "music", "voice"]).optional(), label: z.string().optional() } }, async (a) => {
-    try { const r = await mutate(`add ${a.src}`, "addSound", a); return text({ ok: true, ...r }); } catch (e) { return err(e); }
+    try { const r = await mutate(`added ${a.src} at f${a.at}`, "addSound", a); return text({ ok: true, ...r }); } catch (e) { return err(e); }
   });
   server.registerTool("remove_sound", { title: "Remove a sound", description: "Removes an added sound; a sound declared in code is muted instead.", inputSchema: { id: z.string() } }, async ({ id }) => {
-    try { const r = await mutate(`remove ${id}`, "removeSound", { id }); return text({ ok: true, ...r }); } catch (e) { return err(e); }
+    try { const r = await mutate(`removed ${id}`, "removeSound", { id }); return text({ ok: true, ...r }); } catch (e) { return err(e); }
   });
   server.registerTool("list_audio_files", { title: "Audio files in the project", description: "Audio files under public/ usable as sound sources.", inputSchema: {} }, async () => {
     try { return text(ctx.listAudio()); } catch (e) { return err(e); }
   });
   server.registerTool("set_scene_duration", { title: "Trim a scene", description: "Set a scene's duration in frames; later scenes shift.", inputSchema: { id: z.string(), frames: z.number().int().min(6) } }, async ({ id, frames }) => {
-    try { await mutate(`scene ${id} = ${frames}f`, "setSceneDuration", { id, frames }); return text({ ok: true }); } catch (e) { return err(e); }
+    try { await mutate(`set scene ${id} to ${frames} frames`, "setSceneDuration", { id, frames }); return text({ ok: true }); } catch (e) { return err(e); }
   });
 
   server.registerTool("select", { title: "Select in the editor", description: "Highlight elements or sounds in the UI (so the person sees what you mean).", inputSchema: { type: z.enum(["element", "sound", "scene"]), ids: z.array(z.string()) } }, async ({ type, ids }) => {
@@ -114,11 +116,11 @@ export const createMcpServer = (ctx) => {
   });
   server.registerTool("play", { title: "Play", description: "Start playback in the editor.", inputSchema: {} }, async () => { try { await need("apply", { action: "play", args: {} }); return text({ ok: true }); } catch (e) { return err(e); } });
   server.registerTool("pause", { title: "Pause", description: "Pause playback.", inputSchema: {} }, async () => { try { await need("apply", { action: "pause", args: {} }); return text({ ok: true }); } catch (e) { return err(e); } });
-  server.registerTool("undo", { title: "Undo", description: "Undo the last change (yours or the person's).", inputSchema: {} }, async () => { try { await need("apply", { action: "undo", args: {} }); bridge.notify("mcp", { summary: "undo" }); return text({ ok: true }); } catch (e) { return err(e); } });
+  server.registerTool("undo", { title: "Undo", description: "Undo the last change (yours or the person's).", inputSchema: {} }, async () => { try { await need("apply", { action: "undo", args: {} }); bridge.notify("mcp", { summary: "undid the last change" }); return text({ ok: true }); } catch (e) { return err(e); } });
   server.registerTool("redo", { title: "Redo", description: "Redo.", inputSchema: {} }, async () => { try { await need("apply", { action: "redo", args: {} }); return text({ ok: true }); } catch (e) { return err(e); } });
 
   server.registerTool("save", { title: "Save into the code", description: "Write every pending change into the project's source files (and layout.json for values without a code literal). The editor reloads afterwards. Returns the changed files.", inputSchema: {} }, async () => {
-    try { const r = await need("save"); bridge.notify("mcp", { summary: "saved" }); return text(r); } catch (e) { return err(e); }
+    try { const r = await need("save"); bridge.notify("mcp", { summary: "saved into the source files" }); return text(r); } catch (e) { return err(e); }
   });
   server.registerTool("export_video", { title: "Export MP4", description: "Render the current state to an MP4 on the Desktop. Returns a job id; poll export_status.", inputSchema: { fileName: z.string().optional(), quality: z.enum(["best", "high", "balanced", "small"]).optional() } }, async ({ fileName, quality }) => {
     try { const r = await need("export", { fileName, quality }); return text(r); } catch (e) { return err(e); }
@@ -126,7 +128,7 @@ export const createMcpServer = (ctx) => {
   server.registerTool("export_status", { title: "Export progress", description: "Stage/progress/output path of a render job.", inputSchema: { id: z.string() } }, async ({ id }) => {
     try { const j = ctx.renderJob(id); if (!j) throw new Error("Unknown job"); return text({ stage: j.stage, progress: j.progress, outputLocation: j.outputLocation, error: j.error }); } catch (e) { return err(e); }
   });
-  server.registerTool("preview_frame", { title: "Look at a frame", description: "Render a still of the current state at a frame (defaults to the playhead) and return it as an image, so you can see the result of your changes.", inputSchema: { frame: z.number().int().min(0).optional(), width: z.number().int().min(160).max(1920).optional() } }, async ({ frame, width }) => {
+  server.registerTool("preview_frame", { title: "Look at a frame", description: "Render a still of the current state at a frame (defaults to the playhead) and return it as an image, so you can see the result of your changes. The first call after opening a project can take ~20–40 s while the project bundles; later calls take a few seconds.", inputSchema: { frame: z.number().int().min(0).optional(), width: z.number().int().min(160).max(1920).optional() } }, async ({ frame, width }) => {
     try {
       const st = await need("state");
       const f = frame ?? st.frame;
@@ -140,8 +142,7 @@ export const createMcpServer = (ctx) => {
 
 /** Express mount: stateless Streamable HTTP, one McpServer per request. */
 export const mountMcp = (app, ctx) => {
-  app.all("/mcp", async (req, res) => {
-    if (req.method === "GET" || req.method === "DELETE") { res.status(405).json({ jsonrpc: "2.0", error: { code: -32000, message: "Use POST (stateless mode)" }, id: null }); return; }
+  app.post("/mcp", async (req, res) => {
     try {
       const server = createMcpServer(ctx);
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });

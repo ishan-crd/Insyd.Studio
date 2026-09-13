@@ -1,7 +1,7 @@
 {
   "name": "insyd-studio",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Studio by Insyd — an iMovie-style editor for Remotion projects that writes edits back into the code",
   "type": "module",
   "scripts": {

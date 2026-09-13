@@ -33,7 +33,7 @@ check("set_sounds changes every whoosh in one call", r1.ok && r1.changed.length 
 await page.waitForTimeout(300);
 const live = await page.evaluate(() => window.__insydRegistry.getSounds("main").filter((s) => s.src.endsWith("whoosh.wav")).map((s) => s.volume));
 check("…and the editor plays them at 10% immediately", live.length > 0 && live.every((v) => Math.abs(v - 0.1) < 1e-9), JSON.stringify(live));
-check("editor shows a Claude toast", /Claude:/.test(await page.innerText("body")));
+check("editor shows a Claude toast", /Claude changed \d+ sounds/.test(await page.innerText("body")));
 await call("undo"); await page.waitForTimeout(200);
 const undone = await page.evaluate(() => window.__insydRegistry.getSounds("main").filter((s) => s.src.endsWith("whoosh.wav")).map((s) => s.volume));
 check("undo (one step) restores them", undone.every((v, i) => Math.abs(v - before[0]) < 1e-9), JSON.stringify(undone));

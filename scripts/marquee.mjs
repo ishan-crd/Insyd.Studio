@@ -41,11 +41,14 @@ await dragMouse(lx0 + 0.5, ly0 + 0.5, lx1, ly1);
 s = await S(); check("marquee over the audio lanes selects sounds", s.sel?.type === "sound" && s.multi.length >= 5, `${s.multi.length} sounds`);
 check("sound clips highlighted", (await page.$$(".aclip.on")).length === s.multi.length);
 // group drag of the marquee-selected sounds
-const before = await page.evaluate((ids) => ids.map((id) => (window.__insydStore.getState().layout.sounds[id]?.shift ?? 0)), s.multi);
+// read each clip's absolute start from the DOM so code-default shifts do not skew the baseline
+const starts = (ids) => page.evaluate((ids) => ids.map((id) => +document.querySelector(`.aclip[data-clip-id="${id}"]`).title.match(/starts f(\d+)/)[1]), ids);
+const before = await starts(s.multi);
 const one = await page.$(`.aclip.on`); const ob = await one.boundingBox();
 await dragMouse(ob.x + ob.width / 2, ob.y + ob.height / 2, ob.x + ob.width / 2 + 30, ob.y + ob.height / 2);
-const after = await page.evaluate((ids) => ids.map((id) => (window.__insydStore.getState().layout.sounds[id]?.shift ?? 0)), s.multi);
-check("dragging one of them moves the whole marquee selection", after.every((v, i) => v - before[i] === after[0] - before[0]) && after[0] - before[0] > 3, `Δ=${after[0] - before[0]}`);
+const after = await starts(s.multi);
+const deltas = after.map((v, i) => v - before[i]);
+check("dragging one of them moves the whole marquee selection", deltas.every((d) => d === deltas[0]) && deltas[0] > 3, `Δ=${deltas.join(",")} ids=${s.multi.join(",")}`);
 
 // 4) click without moving on empty space still seeks
 const beforeF = (await S()).frame;

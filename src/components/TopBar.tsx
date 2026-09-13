@@ -3,8 +3,8 @@ import { useStore } from "../state/store";
 import { saveToCode } from "../lib/persist";
 import { scanProject } from "../lib/scan";
 import { Export, Folder, Help, Logo, Redo, Refresh, Save, Undo, Wordmark, ClaudeMark, Copy } from "../lib/icons";
-import { openInClaudeCode, copyClaudeContext } from "../lib/claude";
-import { ConnectClaude } from "./ConnectClaude";
+import { copyClaudeContext } from "../lib/claude";
+import { ClaudeDialog } from "./ClaudeDialog";
 import { Plug } from "../lib/icons";
 import { ExportDialog } from "./ExportDialog";
 import { useShortcuts } from "./ShortcutsModal";
@@ -20,7 +20,7 @@ export const TopBar: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
   const saving = useStore((s) => s.saving);
   const pendingCount = useStore((s) => Object.values(s.pending()).filter((v) => typeof v === "object").reduce((a, v: any) => a + Object.keys(v).length, 0));
   const [exp, setExp] = useState(false);
-  const [mcp, setMcp] = useState(false);
+  const [claude, setClaude] = useState<null | { autoLaunch: boolean }>(null);
   return (
     <div className="topbar">
       <div className="brand" title="Studio by Insyd"><span className="mark"><Logo /></span><Wordmark /></div>
@@ -35,11 +35,11 @@ export const TopBar: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
       </button>
       <div className="spacer" />
       <div className="split">
-        <button className="btn" title="Open Terminal here and start Claude Code with the full Studio context (scenes, elements, sounds, editable values). Its edits appear live." onClick={openInClaudeCode}><ClaudeMark /> Open in Claude Code</button>
+        <button className="btn" title="Open Terminal here and start Claude Code connected to Studio (MCP + full context). Its edits appear live." onClick={() => setClaude({ autoLaunch: true })}><ClaudeMark /> Open in Claude Code</button>
         <button className="btn icon" title="Copy the same context to the clipboard (and write it to CLAUDE.md)" onClick={copyClaudeContext}><Copy /></button>
-        <button className="btn icon" title="Connect Claude Desktop / Claude Code over MCP" onClick={() => setMcp(true)}><Plug /></button>
+        <button className="btn icon" title="Connect Claude Desktop / Claude Code over MCP" onClick={() => setClaude({ autoLaunch: false })}><Plug /></button>
       </div>
-      {mcp && <ConnectClaude onClose={() => setMcp(false)} />}
+      {claude && <ClaudeDialog autoLaunch={claude.autoLaunch} onClose={() => setClaude(null)} />}
       <button className="btn ghost icon" title="Keyboard shortcuts (?)" onClick={() => useShortcuts.getState().set(true)}><Help /></button>
       <button className="btn" onClick={saveLayout} disabled={!dirty || saving} title="Write changes into the project's source files"><Save /> {saving ? "Saving…" : `Save${pendingCount ? ` ${pendingCount}` : ""}`} <span className="kbd">⌘S</span></button>
       <button className="btn primary" onClick={() => setExp(true)}><Export /> Export</button>

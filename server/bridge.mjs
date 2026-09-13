@@ -12,6 +12,8 @@ export const attachBridge = (httpServer) => {
   const wss = new WebSocketServer({ server: httpServer, path: "/bridge" });
   wss.on("connection", (ws) => {
     active = ws;
+    ws.isAlive = true;
+    ws.on("pong", () => { ws.isAlive = true; });
     ws.on("message", (buf) => {
       let msg; try { msg = JSON.parse(String(buf)); } catch { return; }
       if (msg.id !== undefined && pending.has(msg.id)) {
@@ -23,6 +25,8 @@ export const attachBridge = (httpServer) => {
     });
     ws.on("close", () => { if (active === ws) active = null; });
   });
+  // drop dead sockets (closed laptops, killed tabs) so calls fail fast instead of timing out
+  setInterval(() => { for (const ws of wss.clients) { if (ws.isAlive === false) { ws.terminate(); if (active === ws) active = null; continue; } ws.isAlive = false; ws.ping(); } }, 15000).unref();
   return wss;
 };
 

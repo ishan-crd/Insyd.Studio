@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useStore } from "../state/store";
 import { api } from "../lib/api";
+import { useEscape } from "../lib/useEscape";
 
 type Job = { stage: string; progress: number; error: string | null; outputLocation: string };
 const QUALITY = [{ crf: 14, label: "Best (large)" }, { crf: 17, label: "High" }, { crf: 21, label: "Balanced" }, { crf: 26, label: "Small" }];
@@ -26,6 +27,7 @@ export const ExportDialog: React.FC<{ onClose: () => void }> = ({ onClose }) => 
     setJob({ stage: "bundling", progress: 0, error: null, outputLocation: r.outputLocation });
   };
   const busy = job && job.stage !== "done" && job.stage !== "error";
+  useEscape(onClose, !busy);
   const label = job?.stage === "bundling" ? "Bundling project" : job?.stage === "preparing" ? "Preparing composition" : job?.stage === "rendering" ? "Rendering frames" : job?.stage === "done" ? "Done" : job?.stage === "error" ? "Failed" : "";
 
   return (

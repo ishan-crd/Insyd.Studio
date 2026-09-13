@@ -22,6 +22,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const STATE_DIR = path.join(ROOT, ".insyd");
 const STATE_FILE = path.join(STATE_DIR, "project.json");
 const PORT = Number(process.env.PORT || 4321);
+// Local tool: bind to localhost only (the MCP endpoint can edit your files). INSYD_HOST=0.0.0.0 to expose.
+const HOST = process.env.INSYD_HOST || "127.0.0.1";
 
 fs.mkdirSync(STATE_DIR, { recursive: true });
 
@@ -165,6 +167,15 @@ app.post("/api/apply", async (req, res) => {
 // ---------- Claude Code hand-off ----------
 const findClaude = async () => {
   try { const { stdout } = await exec("/bin/zsh", ["-lc", "command -v claude"]); return stdout.trim() || null; } catch { return null; }
+};
+let cliInfo = { path: null, version: null, at: 0 };
+const claudeInfo = async () => {
+  if (Date.now() - cliInfo.at < 30_000) return cliInfo;
+  const p = await findClaude();
+  let version = null;
+  if (p) { try { const { stdout } = await exec(p, ["--version"], { timeout: 8000 }); version = stdout.trim().split("\n")[0]; } catch {} }
+  cliInfo = { path: p, version, at: Date.now() };
+  return cliInfo;
 };
 const makeContext = (body) => {
   const dir = process.env.INSYD_PROJECT;
@@ -383,7 +394,9 @@ app.use((req, res, next) => {
 });
 
 // ---------- MCP (Claude control) ----------
-const MCP_URL = `http://localhost:${PORT}/mcp`;
+// shown to people and put in configs; 127.0.0.1 and localhost are the same machine
+const SHOW_HOST = HOST === "0.0.0.0" || HOST === "127.0.0.1" ? "localhost" : HOST;
+const MCP_URL = `http://${SHOW_HOST}:${PORT}/mcp`;
 const stillCache = { serveUrl: null };
 mountMcp(app, {
   projectDir: () => process.env.INSYD_PROJECT,
@@ -402,7 +415,12 @@ mountMcp(app, {
     return buf;
   },
 });
-app.get("/api/mcp/status", (_req, res) => res.json({ url: MCP_URL, editorConnected: bridge.connected() }));
+app.get("/api/mcp/status", async (_req, res) => { const c = await claudeInfo(); res.json({ url: MCP_URL, host: HOST, editorConnected: bridge.connected(), claudeCli: c.path, claudeVersion: c.version }); });
+// A human visiting the MCP URL gets an explanation instead of a JSON-RPC error.
+app.get("/mcp", (req, res) => {
+  if ((req.headers.accept || "").includes("text/event-stream")) return res.status(405).json({ jsonrpc: "2.0", error: { code: -32000, message: "Stateless server: use POST" }, id: null });
+  res.type("html").send(`<!doctype html><meta charset="utf-8"><title>Studio by Insyd — MCP</title><body style="font:14px/1.6 -apple-system,Inter,sans-serif;background:#0e0f12;color:#e8e8ec;padding:40px;max-width:720px"><h1 style="font-size:20px">Studio by Insyd — MCP server</h1><p>This endpoint speaks the Model Context Protocol (Streamable HTTP). Point Claude at it:</p><pre style="background:#1c1d22;padding:12px;border-radius:8px">claude mcp add --transport http insyd-studio ${MCP_URL}</pre><p>Editor connected: <b>${bridge.connected() ? "yes" : "no — open <a style=\"color:#7c8cff\" href=\"http://${SHOW_HOST}:${PORT}\">the editor</a>"}</b></p><p><a style="color:#7c8cff" href="http://${SHOW_HOST}:${PORT}">Open Studio</a></p></body>`);
+});
 // MCP config file Claude Code can load with --mcp-config
 const mcpConfigPath = path.join(STATE_DIR, "mcp.json");
 fs.writeFileSync(mcpConfigPath, JSON.stringify({ mcpServers: { "insyd-studio": { type: "http", url: MCP_URL } } }, null, 2));
@@ -417,8 +435,11 @@ app.use(vite.middlewares);
 
 const httpServer = http.createServer(app);
 attachBridge(httpServer);
-httpServer.listen(PORT, () => {
-  const url = `http://localhost:${PORT}`;
+httpServer.listen(PORT, HOST, () => {
+  const url = `http://${SHOW_HOST}:${PORT}`;
   console.log(`\n  Insyd Studio  →  ${url}\n  project: ${process.env.INSYD_PROJECT || "(none open)"}\n  MCP:     ${MCP_URL}\n`);
   if (!process.env.INSYD_NO_OPEN && process.platform === "darwin") exec("open", [url]).catch(() => {});
+  // Warm the render bundle in the background so preview_frame / export / thumbnails start fast.
+  const dir = process.env.INSYD_PROJECT;
+  if (dir) { const entry = fs.existsSync(path.join(dir, "src/index.ts")) ? "src/index.ts" : "src/index.tsx"; setTimeout(() => getBundle(dir, entry, () => {}).catch(() => {}), 3000); }
 });

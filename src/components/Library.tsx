@@ -7,6 +7,8 @@ import { sceneColor } from "../lib/colors";
 import { seconds } from "../lib/format";
 import { Block, Eye, EyeOff, Film, Image, Text } from "../lib/icons";
 import { propsOf } from "../lib/owners";
+import { useSoundClips } from "./AudioTracks";
+import { Music, Waveform } from "../lib/icons";
 
 const KindIcon: React.FC<{ kind: string }> = ({ kind }) => (kind === "text" ? <Text /> : kind === "image" ? <Image /> : <Block />);
 
@@ -19,11 +21,13 @@ export const Library: React.FC = () => {
   const layout = useStore((s) => s.layout);
   const codeDefaults = useStore((s) => s.codeDefaults);
   const props = useProps();
-  const [tab, setTab] = useState<"scenes" | "elements" | "brand">("elements");
+  const [tab, setTab] = useState<"scenes" | "elements" | "sounds" | "brand">("elements");
+  const clips = useSoundClips();
 
   useEffect(() => {
     if (selection?.type === "element") { setTab("elements"); requestAnimationFrame(() => document.querySelector(`[data-lib="${CSS.escape(selection.id)}"]`)?.scrollIntoView({ block: "nearest" })); }
     if (selection?.type === "brand") setTab("brand");
+    if (selection?.type === "sound") { setTab("sounds"); requestAnimationFrame(() => document.querySelector(`[data-lib="${CSS.escape(selection.id)}"]`)?.scrollIntoView({ block: "nearest" })); }
   }, [selection]);
 
   const goElement = (id: string, first: number, last: number, ev?: React.MouseEvent) => {
@@ -45,6 +49,7 @@ export const Library: React.FC = () => {
         <div className="tabs">
           <button className={tab === "scenes" ? "on" : ""} onClick={() => setTab("scenes")}>Scenes</button>
           <button className={tab === "elements" ? "on" : ""} onClick={() => setTab("elements")}>Elements</button>
+          <button className={tab === "sounds" ? "on" : ""} onClick={() => setTab("sounds")}>Sounds</button>
           <button className={tab === "brand" ? "on" : ""} onClick={() => { setTab("brand"); useStore.getState().select({ type: "brand" }); }}>Brand</button>
         </div>
       </div>
@@ -54,6 +59,25 @@ export const Library: React.FC = () => {
             <span className="chip" style={{ background: sceneColor(sc.index) }} /><Film /><span className="name">{sc.label}</span><span className="meta">{seconds(sc.duration, def.fps)}</span>
           </div>
         ))}
+        {tab === "sounds" && (() => {
+          const groups: Array<[string, React.ReactNode, typeof clips]> = [["Music", <Music />, clips.filter((c) => c.kind === "music")], ["Sound effects", <Waveform />, clips.filter((c) => c.kind !== "music")]];
+          return groups.map(([title, icon, list]) => list.length ? (
+            <div key={title}>
+              <div className="group">{icon}{title}<span style={{ marginLeft: "auto", fontWeight: 500 }}>{list.length}</span></div>
+              {list.map((c) => {
+                const on = selection?.type === "sound" && (selection.id === c.id || multi.includes(c.id));
+                return (
+                  <div key={c.id} data-lib={c.id} className={`row ${on ? "on" : ""} ${c.muted ? "dim" : ""}`} onClick={(ev) => { const s = useStore.getState(); if (ev.shiftKey || ev.metaKey || ev.ctrlKey) { if (s.selection?.type !== "sound") s.select({ type: "sound", id: c.id }); else s.addToSelection(c.id, ev.metaKey || ev.ctrlKey); return; } s.select({ type: "sound", id: c.id }); const f = usePlayback.getState().frame; if (f < c.start || f > c.start + c.frames) seek(c.start); }}>
+                    {c.kind === "music" ? <Music /> : <Waveform />}
+                    <span className="name">{c.label}</span>
+                    <span className="meta">{seconds(c.start, def.fps)}</span>
+                    <span className="meta" title={c.muted ? "Unmute" : "Mute"} onClick={(ev) => { ev.stopPropagation(); useStore.getState().setSound(c.id, { muted: !c.muted }); }} style={{ display: "grid", placeItems: "center", width: 20, height: 20, borderRadius: 4, cursor: "pointer" }}>{c.muted ? <EyeOff /> : <Eye />}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : null);
+        })()}
         {tab === "brand" && (
           brandProps.length ? (
             <div>
