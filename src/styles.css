@@ -245,3 +245,15 @@ input[type="number"] { font-family: var(--mono); font-size: 12px; }
 .aclip.locked { cursor: default; }
 .aclip.locked::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 6px, rgba(0,0,0,0.18) 6px 8px); pointer-events: none; }
 .alabel .lk { display: inline-grid; place-items: center; } .alabel .lk svg { width: 10px; height: 10px; }
+
+/* shortcuts modal */
+.sc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 22px; }
+.sc-group { break-inside: avoid; }
+.sc-group h4 { margin: 10px 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); }
+.sc-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 4px 0; color: var(--text-2); font-size: 12px; border-bottom: 1px solid var(--line); }
+.sc-keys { display: flex; gap: 4px; flex-shrink: 0; }
+/* track lock buttons */
+.tname .tlock { margin-left: auto; opacity: 0; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; cursor: pointer; color: var(--text-2); }
+.tname:hover .tlock, .tname .tlock.on { opacity: 1; }
+.tname .tlock.on { color: var(--warn); }
+.tname .tlock svg { width: 12px; height: 12px; }

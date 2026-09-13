@@ -37,7 +37,7 @@ Then **Browse…** to a project folder (or paste its path) and **Open project**.
 nothing pending. Anything without a literal in the code is kept in `layout.json` (marked *json* in the
 Inspector). Unsaved edits survive reloads (restored as a draft) and `⌘Z` / `⇧⌘Z` undo/redo everything.
 **Export** renders exactly what you see to your Desktop with progress, then *Reveal in Finder*.
-`?` in the top bar lists all shortcuts.
+`?` (key or top-bar button) opens the full shortcuts reference; `⌘A` selects every element (or every sound when a sound is selected); `⌘+` / `⌘−` / `⌘0` zoom the timeline; the lock icon on a scene header or on the Sound effects / Music lane locks everything on that track.
 
 ## Making a Remotion project editable
 
@@ -111,6 +111,7 @@ node scripts/marquee.mjs      rubber-band selection in the timeline
 node scripts/groupedit.mjs    group inspector: shared fields, edits applied to every selected item
 node scripts/clips.mjs        sound clip vocabulary: menu, split, trim, copy/paste, duplicate, delete, lock
 node scripts/elclips.mjs      element clip vocabulary: linked copies, split/trim windows, delete/hide, lock
+node scripts/shortcuts.mjs    ⌘A, zoom shortcuts, shortcuts modal, track locks
 node scripts/audio.mjs        audio tracks: drag/replace/volume/mute/add, save → code
 node scripts/playpause.mjs    play/pause through the real UI controls
 node scripts/perf.mjs    main-thread ms/frame during playback

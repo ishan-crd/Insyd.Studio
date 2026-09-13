@@ -13,6 +13,7 @@ import { Inspector } from "./components/Inspector";
 import { Timeline } from "./components/Timeline";
 import { useKeyboard } from "./lib/keyboard";
 import { ContextMenuHost } from "./components/ContextMenu";
+import { ShortcutsModal } from "./components/ShortcutsModal";
 
 export const App: React.FC = () => {
   const ready = useStore((s) => s.def !== null);
@@ -75,6 +76,7 @@ export const App: React.FC = () => {
       <Inspector />
       <Timeline />
       <ContextMenuHost />
+      <ShortcutsModal />
       {toast && <div className="toast">{toast}</div>}
     </div>
   );

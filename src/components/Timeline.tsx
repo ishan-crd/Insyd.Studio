@@ -212,7 +212,9 @@ export const Timeline: React.FC = () => {
     const open = !collapsed[sc.id];
     names.push(
       <div key={"g" + sc.id} className="trow grp"><div className="tname grp" style={{ height: ROW.grp }} onClick={() => store().toggleCollapsed(sc.id)}>
-        <Chevron open={open} /><span className="chip" style={{ background: sceneColor(sc.index) }} />{sc.label}<span style={{ marginLeft: "auto", fontWeight: 500 }}>{els.length}</span>
+        <Chevron open={open} /><span className="chip" style={{ background: sceneColor(sc.index) }} />{sc.label}
+        {(() => { const all = els.length > 0 && els.every((x) => isElementLocked(x.id)); return <span className={`tlock ${all ? "on" : ""}`} title={all ? "Unlock all elements in this scene" : "Lock all elements in this scene"} onClick={(ev) => { ev.stopPropagation(); setElementsLocked(els.map((x) => x.id), !all); }}>{all ? <Lock /> : <Unlock />}</span>; })()}
+        <span style={{ fontWeight: 500, marginLeft: 6 }}>{els.length}</span>
       </div></div>,
     );
     rows.push(<div key={"g" + sc.id} className="trow grp" onPointerDown={trackDown} onContextMenu={(e) => openMenu(e, elementMenu([]))} />);

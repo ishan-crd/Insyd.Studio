@@ -208,11 +208,17 @@ export const useAudioRows = (
   rows.push(<div key="ah" className="trow grp" onPointerDown={scrub}><AddSoundButton /></div>);
   if (!collapsed) {
     lanes.forEach((lane, i) => {
-      names.push(<div key={"l" + i} className="trow" style={{ height: ROW_AUDIO }}><div className="tname" style={{ height: ROW_AUDIO }}><WaveIcon />{i === 0 ? "Sound effects" : ""}<span style={{ marginLeft: "auto", color: "var(--text-3)", fontSize: 10 }}>{i + 1}</span></div></div>);
+      const allSfxLocked = sfx.length > 0 && sfx.every((c) => isSoundLocked(c.id));
+      names.push(<div key={"l" + i} className="trow" style={{ height: ROW_AUDIO }}><div className="tname" style={{ height: ROW_AUDIO }}><WaveIcon />{i === 0 ? "Sound effects" : ""}
+        {i === 0 && <span className={`tlock ${allSfxLocked ? "on" : ""}`} title={allSfxLocked ? "Unlock all sound effects" : "Lock all sound effects"} onClick={() => setSoundsLocked(sfx.map((c) => c.id), !allSfxLocked)}>{allSfxLocked ? <Lock /> : <Unlock />}</span>}
+        <span style={{ marginLeft: i === 0 ? 4 : "auto", color: "var(--text-3)", fontSize: 10 }}>{i + 1}</span></div></div>);
       rows.push(<div key={"l" + i} className="trow" style={{ height: ROW_AUDIO }} onPointerDown={scrub} onContextMenu={(e) => openMenu(e, soundMenu([], usePlayback.getState().frame, clips))}>{lane.map((c) => <SoundClipView key={c.id} c={c} ppf={ppf} on={isOn(c.id)} row={ROW_AUDIO} onPointerDown={(e) => dragSound(e, c)} drag={drag} clips={clips} />)}</div>);
     });
     if (!lanes.length) { names.push(<div key="l0" className="trow" style={{ height: ROW_AUDIO }}><div className="tname" style={{ height: ROW_AUDIO }}><WaveIcon />Sound effects</div></div>); rows.push(<div key="l0" className="trow" style={{ height: ROW_AUDIO }} onPointerDown={scrub} onContextMenu={(e) => openMenu(e, soundMenu([], usePlayback.getState().frame, clips))} />); }
-    names.push(<div key="m" className="trow" style={{ height: ROW_MUSIC }}><div className="tname" style={{ height: ROW_MUSIC }}><Music />Music</div></div>);
+    const allMusicLocked = music.length > 0 && music.every((c) => isSoundLocked(c.id));
+    names.push(<div key="m" className="trow" style={{ height: ROW_MUSIC }}><div className="tname" style={{ height: ROW_MUSIC }}><Music />Music
+      {music.length > 0 && <span className={`tlock ${allMusicLocked ? "on" : ""}`} title={allMusicLocked ? "Unlock music" : "Lock music"} onClick={() => setSoundsLocked(music.map((c) => c.id), !allMusicLocked)}>{allMusicLocked ? <Lock /> : <Unlock />}</span>}
+    </div></div>);
     rows.push(<div key="m" className="trow" style={{ height: ROW_MUSIC }} onPointerDown={scrub} onContextMenu={(e) => openMenu(e, soundMenu([], usePlayback.getState().frame, clips))}>{music.map((c) => <SoundClipView key={c.id} c={c} ppf={ppf} on={isOn(c.id)} row={ROW_MUSIC} onPointerDown={(e) => dragSound(e, c)} drag={drag} clips={clips} />)}</div>);
   }
   return { names, rows };

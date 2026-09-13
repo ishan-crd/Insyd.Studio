@@ -15,6 +15,7 @@ export const getClipboard = () => clipboard;
 let currentSoundClips: SoundClip[] = [];
 export const setCurrentSoundClips = (c: SoundClip[]) => { currentSoundClips = c; };
 export const soundClip = (id: string) => currentSoundClips.find((c) => c.id === id);
+export const soundClipIds = () => currentSoundClips.map((c) => c.id);
 /** Lock state read from the live layout first (the clip list can lag a render behind rapid edits). */
 export const isSoundLocked = (id: string) => {
   const o = useStore.getState().layout.sounds[id];

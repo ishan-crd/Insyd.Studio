@@ -4,6 +4,8 @@ import { playerRef, seek } from "./player";
 import { saveToCode } from "./persist";
 import { usePlayback } from "../state/playback";
 import { registry } from "@project/sdk";
+import { useShortcuts } from "../components/ShortcutsModal";
+import { soundClipIds } from "./clips";
 import { copySounds, cutSounds, pasteSounds, duplicateSounds, splitSounds, deleteSounds, setSoundsLocked, soundClip, isSoundLocked, copyElements, cutElements, pasteClipboard, duplicateElements, splitElements, deleteElements, setElementsLocked, isElementLocked } from "./clips";
 
 const typing = () => {
@@ -20,6 +22,16 @@ export const useKeyboard = () => {
       if (meta && e.key.toLowerCase() === "s") { e.preventDefault(); saveToCode(); return; }
       if (meta && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? s.redo() : s.undo(); return; }
       if (typing()) return;
+      if (e.key === "?" || (e.shiftKey && e.key === "/")) { e.preventDefault(); useShortcuts.getState().set(!useShortcuts.getState().open); return; }
+      if (meta && (e.key === "=" || e.key === "+")) { e.preventDefault(); s.setZoom(Math.min(8, (s.zoom ?? 1) * 1.25)); return; }
+      if (meta && e.key === "-") { e.preventDefault(); s.setZoom(Math.max(1, (s.zoom ?? 1) / 1.25)); return; }
+      if (meta && e.key === "0") { e.preventDefault(); s.setZoom(null); return; }
+      if (meta && e.key.toLowerCase() === "a") {
+        e.preventDefault();
+        if (s.selection?.type === "sound") { const ids = soundClipIds(); if (ids.length) useStore.setState({ selection: { type: "sound", id: ids[0] }, multi: ids }); }
+        else { const ids = s.allElements().map((x) => x.id); if (ids.length) useStore.setState({ selection: { type: "element", id: ids[0] }, multi: ids }); }
+        return;
+      }
       const p = playerRef.current;
       const soundSel = s.selection?.type === "sound";
       if (meta && soundSel) {

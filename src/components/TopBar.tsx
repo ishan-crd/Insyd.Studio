@@ -4,6 +4,7 @@ import { saveToCode } from "../lib/persist";
 import { scanProject } from "../lib/scan";
 import { Export, Folder, Help, Logo, Redo, Refresh, Save, Undo, Wordmark } from "../lib/icons";
 import { ExportDialog } from "./ExportDialog";
+import { useShortcuts } from "./ShortcutsModal";
 
 export const saveLayout = saveToCode;
 
@@ -16,7 +17,6 @@ export const TopBar: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
   const saving = useStore((s) => s.saving);
   const pendingCount = useStore((s) => Object.values(s.pending()).filter((v) => typeof v === "object").reduce((a, v: any) => a + Object.keys(v).length, 0));
   const [exp, setExp] = useState(false);
-  const [help, setHelp] = useState(false);
   return (
     <div className="topbar">
       <div className="brand" title="Studio by Insyd"><span className="mark"><Logo /></span><Wordmark /></div>
@@ -30,31 +30,10 @@ export const TopBar: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
         <Refresh /> {scan.status === "running" ? `Analyzing ${Math.round(scan.progress * 100)}%` : "Rescan"}
       </button>
       <div className="spacer" />
-      <button className="btn ghost icon" title="Shortcuts" onClick={() => setHelp((h) => !h)}><Help /></button>
+      <button className="btn ghost icon" title="Keyboard shortcuts (?)" onClick={() => useShortcuts.getState().set(true)}><Help /></button>
       <button className="btn" onClick={saveLayout} disabled={!dirty || saving} title="Write changes into the project's source files"><Save /> {saving ? "Saving…" : `Save${pendingCount ? ` ${pendingCount}` : ""}`} <span className="kbd">⌘S</span></button>
       <button className="btn primary" onClick={() => setExp(true)}><Export /> Export</button>
       {exp && <ExportDialog onClose={() => setExp(false)} />}
-      {help && (
-        <div className="help" onMouseLeave={() => setHelp(false)}>
-          <h4>Shortcuts</h4>
-          <div><span>Play / pause</span><span className="kbd">Space</span></div>
-          <div><span>Step frame</span><span><span className="kbd">←</span><span className="kbd">→</span></span></div>
-          <div><span>Step 10 frames</span><span><span className="kbd">⇧</span>+<span className="kbd">←→</span></span></div>
-          <div><span>Nudge selected element</span><span><span className="kbd">←↑↓→</span> (<span className="kbd">⇧</span> = 10px)</span></div>
-          <div><span>Step frames while selected</span><span><span className="kbd">⌥</span>+<span className="kbd">←→</span></span></div>
-          <div><span>Start / end</span><span><span className="kbd">Home</span><span className="kbd">End</span></span></div>
-          <div><span>Hide selected</span><span className="kbd">⌫</span></div>
-          <div><span>Deselect</span><span className="kbd">Esc</span></div>
-          <div><span>Undo / redo</span><span><span className="kbd">⌘Z</span><span className="kbd">⇧⌘Z</span></span></div>
-          <div><span>Save (writes to source files)</span><span className="kbd">⌘S</span></div>
-          <div><span>Constrain drag to axis</span><span className="kbd">⇧ drag</span></div>
-          <div><span>Add to / toggle selection</span><span><span className="kbd">⇧ click</span><span className="kbd">⌘ click</span></span></div>
-          <div><span>Box-select clips in the timeline</span><span className="kbd">drag empty space</span></div>
-          <div><span>Cut / copy / paste at playhead</span><span><span className="kbd">⌘X</span><span className="kbd">⌘C</span><span className="kbd">⌘V</span></span></div>
-          <div><span>Duplicate / split at playhead / lock</span><span><span className="kbd">⌘D</span><span className="kbd">⌘K</span><span className="kbd">⌘L</span></span></div>
-          <div><span>Mute selected sounds</span><span className="kbd">M</span></div>
-        </div>
-      )}
     </div>
   );
 };
