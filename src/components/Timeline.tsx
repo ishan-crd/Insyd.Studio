@@ -110,7 +110,11 @@ export const Timeline: React.FC = () => {
       moved = true;
       const box = { x: Math.min(start.x, p.x), y: Math.min(start.y, p.y), w: Math.abs(p.x - start.x), h: Math.abs(p.y - start.y) };
       setMarquee(box); applyMarquee(box, base);
-    }, (m) => { setMarquee(null); if (!m) seek(frameAt(e.clientX)); });
+    }, (m) => {
+      setMarquee(null);
+      // a plain click on empty space seeks and clears the selection (⇧/⌘-click keeps it)
+      if (!m) { seek(frameAt(e.clientX)); if (!additive) store().select(null); }
+    });
   };
 
   const frameAt = (clientX: number) => {

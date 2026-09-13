@@ -51,6 +51,11 @@ check("dragging one of them moves the whole marquee selection", after.every((v, 
 const beforeF = (await S()).frame;
 await page.mouse.click(tracks.x + 600, first.y + 3 * 30 + 12); await page.waitForTimeout(250);
 s = await S(); check("plain click on empty track space seeks the playhead", s.frame !== beforeF && s.frame > 0, `f${s.frame}`);
+check("plain click on empty space deselects everything", s.sel === null && s.multi.length === 0, JSON.stringify(s.sel));
+// ⇧-click on empty space keeps the selection
+await page.evaluate(() => window.__insydStore.getState().select({ type: "element", id: "search.card" })); await page.waitForTimeout(200);
+await page.keyboard.down("Shift"); await page.mouse.click(tracks.x + 640, first.y + 3 * 30 + 12); await page.keyboard.up("Shift"); await page.waitForTimeout(200);
+s = await S(); check("⇧-click on empty space keeps the selection", s.sel?.id === "search.card");
 check("no page errors", errors.length === 0, errors.slice(0, 2).join(" | "));
 console.log(`${results.filter(Boolean).length}/${results.length} passed`);
 await browser.close();
