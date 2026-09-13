@@ -9,7 +9,8 @@ import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
 import { bundle } from "@remotion/bundler";
-import { renderMedia, selectComposition, makeCancelSignal } from "@remotion/renderer";
+import { renderMedia, renderFrames, selectComposition, makeCancelSignal } from "@remotion/renderer";
+import crypto from "node:crypto";
 import { buildIndex, applyLayout } from "./codemod.mjs";
 
 const exec = promisify(execFile);
@@ -188,6 +189,62 @@ app.post("/api/audio/upload", async (req, res) => {
   if (!overwrite && fs.existsSync(file)) { const ext = path.extname(safe); file = path.join(target, `${path.basename(safe, ext)}-${Date.now().toString(36)}${ext}`); }
   await fsp.writeFile(file, Buffer.from(data, "base64"));
   res.json({ src: path.relative(path.join(dir, "public"), file).split(path.sep).join("/") });
+});
+
+// ---------- filmstrip thumbnails ----------
+// One background renderFrames pass (every Nth frame, thumbnail scale) per project state, cached under
+// .insyd/thumbs/<project>/<key>/. The key changes when the source, public assets or layout.json change.
+const THUMB_W = 160;
+const thumbJobs = new Map(); // key -> { status, progress, error }
+const slugOf = (dir) => path.basename(dir).replace(/[^\w.-]+/g, "_") + "-" + crypto.createHash("md5").update(dir).digest("hex").slice(0, 6);
+const thumbKey = (dir, layoutFile) => {
+  let lm = 0; try { lm = fs.statSync(path.join(dir, layoutFile)).mtimeMs; } catch {}
+  return crypto.createHash("md5").update([newestMtime(path.join(dir, "src")), newestMtime(path.join(dir, "public")), lm, THUMB_W].join("|")).digest("hex").slice(0, 12);
+};
+app.use("/thumbs", express.static(path.join(STATE_DIR, "thumbs"), { maxAge: "30d", immutable: true }));
+
+app.post("/api/thumbs", async (req, res) => {
+  const dir = process.env.INSYD_PROJECT;
+  if (!dir) return res.status(400).json({ error: "No project open" });
+  const { compositionId, entryPoint, layoutFile = "layout.json", every = 15 } = req.body;
+  const slug = slugOf(dir), key = thumbKey(dir, layoutFile);
+  const outDir = path.join(STATE_DIR, "thumbs", slug, key);
+  const manifestPath = path.join(outDir, "manifest.json");
+  const base = `/thumbs/${slug}/${key}`;
+  if (fs.existsSync(manifestPath)) return res.json({ status: "ready", key, base, ...JSON.parse(fs.readFileSync(manifestPath, "utf8")) });
+  const running = thumbJobs.get(key);
+  if (running) return res.json({ status: running.status, key, base, progress: running.progress, error: running.error });
+  const job = { status: "running", progress: 0, error: null };
+  thumbJobs.set(key, job);
+  res.json({ status: "running", key, base, progress: 0 });
+  (async () => {
+    try {
+      const serveUrl = await getBundle(dir, entryPoint, () => {});
+      const composition = await selectComposition({ serveUrl, id: compositionId });
+      const tmp = outDir + ".tmp";
+      await fsp.rm(tmp, { recursive: true, force: true });
+      await fsp.mkdir(tmp, { recursive: true });
+      await renderFrames({
+        composition, serveUrl, outputDir: tmp, imageFormat: "jpeg", jpegQuality: 70,
+        scale: THUMB_W / composition.width, everyNthFrame: every,
+        onStart: () => {}, onFrameUpdate: (n) => { job.progress = n / Math.ceil(composition.durationInFrames / every); },
+      });
+      const files = (await fsp.readdir(tmp)).filter((f) => f.endsWith(".jpeg")).sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
+      const manifest = { every, count: files.length, width: THUMB_W, height: Math.round((THUMB_W * composition.height) / composition.width), fps: composition.fps, durationInFrames: composition.durationInFrames, files };
+      await fsp.writeFile(path.join(tmp, "manifest.json"), JSON.stringify(manifest));
+      await fsp.rm(outDir, { recursive: true, force: true });
+      await fsp.rename(tmp, outDir);
+      // keep only the newest 3 keys per project
+      const parent = path.join(STATE_DIR, "thumbs", slug);
+      const keys = (await fsp.readdir(parent)).filter((k) => !k.endsWith(".tmp")).map((k) => ({ k, t: fs.statSync(path.join(parent, k)).mtimeMs })).sort((a, b) => b.t - a.t);
+      for (const old of keys.slice(3)) await fsp.rm(path.join(parent, old.k), { recursive: true, force: true });
+      job.status = "ready"; job.progress = 1;
+    } catch (e) {
+      job.status = "error"; job.error = e.message;
+    } finally {
+      setTimeout(() => thumbJobs.delete(key), 60_000);
+    }
+  })();
 });
 
 // ---------- render ----------

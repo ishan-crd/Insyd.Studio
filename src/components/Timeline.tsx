@@ -11,11 +11,28 @@ import { propsOf } from "../lib/owners";
 import { useAudioRows } from "./AudioTracks";
 import { openMenu, type MenuItem } from "./ContextMenu";
 import { snapDelta, clearSnap, useSnapUi } from "../lib/snap";
+import { useThumbs } from "../lib/thumbs";
 import { copyElements, cutElements, pasteClipboard, duplicateElements, splitElements, deleteElements, setElementsLocked, trimElement, isElementLocked, getClipboard } from "../lib/clips";
 import { Copy, Clipboard as ClipIcon, Duplicate, Scissors, Trash, Lock, Unlock, EyeOff as EyeOffIcon } from "../lib/icons";
 
-const ROW = { ruler: 28, scene: 40, grp: 24, el: 28 };
+const ROW = { ruler: 28, scene: 56, grp: 24, el: 28 };
 const KindIcon: React.FC<{ kind: string }> = ({ kind }) => (kind === "text" ? <Text /> : kind === "image" ? <Image /> : <Block />);
+
+// Thumbnails that fall inside a scene block, laid out at their frame position.
+const Filmstrip: React.FC<{ from: number; duration: number; ppf: number }> = ({ from, duration, ppf }) => {
+  const thumbs = useThumbs((s) => s.thumbs);
+  if (!thumbs) return null;
+  const { base, every, files } = thumbs;
+  const w = every * ppf;
+  const first = Math.floor(from / every), last = Math.ceil((from + duration) / every);
+  const imgs: React.ReactNode[] = [];
+  for (let i = Math.max(0, first); i <= Math.min(files.length - 1, last); i++) {
+    const frame = i * every;
+    const x = (frame - from) * ppf;
+    imgs.push(<img key={i} src={`${base}/${files[i]}`} alt="" draggable={false} style={{ position: "absolute", left: x, top: 0, height: "100%", width: Math.max(w, 1), objectFit: "cover", objectPosition: "center" }} />);
+  }
+  return <div className="filmstrip" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>{imgs}<div className="film-shade" /></div>;
+};
 
 const SnapLine: React.FC<{ ppf: number }> = ({ ppf }) => {
   const line = useSnapUi((s) => s.line);
@@ -192,6 +209,8 @@ export const Timeline: React.FC = () => {
 
   const elementIds = useMemo(() => scan.elements.map((e) => e.id), [scan.elements]);
   const audio = useAudioRows(ppf, trackDown, drag);
+  const thumbState = useThumbs();
+  const hasThumbs = !!thumbState.thumbs;
   const elementMenu = (ids: string[]): MenuItem[] => {
     const n = ids.length, frame = usePlayback.getState().frame;
     const locked = ids.some(isElementLocked), allLocked = n > 0 && ids.every(isElementLocked);
@@ -296,6 +315,8 @@ export const Timeline: React.FC = () => {
         <span className="sep" />
         {scan.status === "running" ? (
           <div className="scanbar">Analyzing elements <div className="bar"><i style={{ width: `${scan.progress * 100}%` }} /></div></div>
+        ) : thumbState.status === "running" ? (
+          <div className="scanbar">Rendering thumbnails <div className="bar"><i style={{ width: `${thumbState.progress * 100}%` }} /></div></div>
         ) : (
           <span style={{ color: "var(--text-3)", fontSize: 12 }}>{multi.length > 1 ? <b style={{ color: "var(--accent)" }}>{multi.length} selected · drag any of them to slide the group · </b> : null}{scenes.length} scenes · {scan.elements.length} elements · {scan.sounds.length} sounds · ⇧-click clips to multi-select · drag scene edges to trim · drag the bright bar inside a clip to re-time its entrance</span>
         )}
@@ -320,9 +341,10 @@ export const Timeline: React.FC = () => {
               {scenes.map((sc) => {
                 const on = selection?.type === "scene" && selection.id === sc.id;
                 return (
-                  <div key={sc.id} className={`sblock ${on ? "on" : ""}`} style={{ left: sc.from * ppf + 1, width: Math.max(8, sc.duration * ppf - 3), background: sceneColor(sc.index) }}
+                  <div key={sc.id} className={`sblock ${on ? "on" : ""} ${hasThumbs ? "film" : ""}`} style={{ left: sc.from * ppf + 1, width: Math.max(8, sc.duration * ppf - 3), background: sceneColor(sc.index), ["--scene" as any]: sceneColor(sc.index) }}
                     onPointerDown={(e) => { e.stopPropagation(); store().select({ type: "scene", id: sc.id }); seek(frameAt(e.clientX)); }}>
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{sc.label}</span>
+                    <Filmstrip from={sc.from} duration={sc.duration} ppf={ppf} />
+                    <span className="slabel" style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{sc.label}</span>
                     <span className="dur">{(sc.duration / def.fps).toFixed(1)}s</span>
                     <div className="edge" onPointerDown={(e) => dragScene(e, sc.id, sc.duration)} title="Drag to trim" />
                   </div>

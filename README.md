@@ -29,7 +29,7 @@ Then **Browse…** to a project folder (or paste its path) and **Open project**.
 | **Scene** (click a scene block or "Scene settings") | Duration, plus scene-level properties such as panel colours and wipe lengths. |
 | **Brand** tab | Global tokens declared with `brand()`: palette, backgrounds, fonts. Change one and every scene follows. |
 | **Audio** (bottom of the timeline) | Every `<Sound>` as a clip with its waveform: sound effects packed into lanes above the **Music** lane. Drag a clip to re-time it (`⇧`-click to move several together), click it to edit **volume**, **mute**, **start**, or **Replace…** the file with any audio in `public/` or an upload. **+ Sound** drops a new file at the playhead. Right-click any sound clip (or use `⌘C/⌘X/⌘V/⌘D/⌘K/⌘L`, `M`, `⌫`) to copy, cut, paste at the playhead (relative offsets kept), duplicate, split at the playhead, mute, lock or delete; drag a clip's edges to trim it. Saved as `shift` / `volume` / `muted` / `src` props on the `<Sound>` in code; added sounds live in `layout.json` and play everywhere via `<LayoutSounds/>`. |
-| **Timeline** | *Scenes* track pinned under the ruler: drag a scene's right edge to trim it. One clip per element: drag to shift it in time; drag the bright bar inside a clip to re-time that element's entrance. **`⇧`-click clips to select several (`⌘`-click toggles), or drag a selection box on empty track space like on the desktop (`⇧` adds), then drag any of them to slide the whole group.** Clips **snap** to other clips, scene cuts and the playhead while dragging or trimming (pink guide; hold `⌥` to bypass). Ruler scrubs; zoom; resizable. |
+| **Timeline** | *Scenes* track pinned under the ruler, each scene showing a **filmstrip of real frames** (rendered in the background and cached; refreshed after Save): drag a scene's right edge to trim it. One clip per element: drag to shift it in time; drag the bright bar inside a clip to re-time that element's entrance. **`⇧`-click clips to select several (`⌘`-click toggles), or drag a selection box on empty track space like on the desktop (`⇧` adds), then drag any of them to slide the whole group.** Clips **snap** to other clips, scene cuts and the playhead while dragging or trimming (pink guide; hold `⌥` to bypass). Ruler scrubs; zoom; resizable. |
 
 `⌘S` **saves into the source**: literals are rewritten in place (`edit("id", 108)` → `edit("id", 140)`,
 `useCopy(...)` text, `brand(...)` tokens, `useAnim(...)` specs, `<Editable x={…} y={…}>` attributes, scene
@@ -96,6 +96,7 @@ See `~/superconductor/projects/thumb-mcp/video` for a complete example (the thum
 - `<Editable>` registers its DOM node with a registry; hit-testing uses `elementsFromPoint`, and only
   the hovered/selected element is measured per frame. On open, Insyd Studio steps through the video once to
   learn when every element is on screen (cached; **Rescan** refreshes it).
+- Scene filmstrips come from one background `renderFrames` pass per project state (every 15th frame at 160px), cached under `.insyd/thumbs/` and keyed by the source, assets and layout mtimes.
 - `server/codemod.mjs` parses the project with Babel, indexes every locator (`call:`, `jsx:`,
   `scene:`) and rewrites literals with magic-string, preserving formatting. `server/index.mjs` serves
   the app and the project's `public/`, runs saves and `@remotion/renderer` exports.
@@ -113,6 +114,7 @@ node scripts/clips.mjs        sound clip vocabulary: menu, split, trim, copy/pas
 node scripts/elclips.mjs      element clip vocabulary: linked copies, split/trim windows, delete/hide, lock
 node scripts/shortcuts.mjs    ⌘A, zoom shortcuts, shortcuts modal, track locks
 node scripts/snap.mjs         timeline + canvas snapping
+node scripts/thumbs.mjs       filmstrip thumbnails render, cache and load
 node scripts/audio.mjs        audio tracks: drag/replace/volume/mute/add, save → code
 node scripts/playpause.mjs    play/pause through the real UI controls
 node scripts/perf.mjs    main-thread ms/frame during playback
