@@ -1,0 +1,20 @@
+// CPU profile during playback; prints top self-time functions.
+import { chromium } from "playwright";
+const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined });
+const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+const cdp = await page.context().newCDPSession(page);
+await page.goto("http://localhost:4321/" + (process.env.Q || "?bare=1&noeditor=1"), { waitUntil: "networkidle" });
+await page.waitForFunction(() => !!window.__insydPlayer, null, { timeout: 120000 });
+await page.waitForFunction(() => { const s = window.__insydStore?.getState(); return !s || s.scan.status !== "running"; }, null, { timeout: 120000 });
+const start = Number(process.env.F || 0);
+await page.evaluate(async (f) => { const p = window.__insydPlayer; p.pause(); p.seekTo(f); await new Promise((r) => setTimeout(r, 400)); }, start);
+await cdp.send("Profiler.enable"); await cdp.send("Profiler.setSamplingInterval", { interval: 200 }); await cdp.send("Profiler.start");
+await page.evaluate(async () => { const p = window.__insydPlayer; p.play(); await new Promise((r) => setTimeout(r, 3000)); p.pause(); });
+const { profile } = await cdp.send("Profiler.stop");
+const self = new Map(); const byId = new Map(profile.nodes.map((n) => [n.id, n]));
+const dt = profile.timeDeltas; let total = 0;
+profile.samples.forEach((id, i) => { const n = byId.get(id); const k = `${n.callFrame.functionName || "(anon)"} @ ${n.callFrame.url.split("/").slice(-1)[0].split("?")[0]}:${n.callFrame.lineNumber}`; self.set(k, (self.get(k) || 0) + dt[i]); total += dt[i]; });
+const top = [...self.entries()].sort((a, b) => b[1] - a[1]).slice(0, 22);
+console.log(`total sampled ${(total / 1000).toFixed(0)}ms`);
+for (const [k, v] of top) console.log(String((v / 1000).toFixed(0)).padStart(6), "ms", k);
+await browser.close();
