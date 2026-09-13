@@ -26,6 +26,7 @@ Then **Browse…** to a project folder (or paste its path) and **Open project**.
 | **Inspector → Animation** | Every `useAnim()` entrance: delay, motion (spring presets / custom physics / bezier), and the *from* values (x, y, scale, opacity, rotation, blur), with a live curve preview. |
 | **Scene** (click a scene block or "Scene settings") | Duration, plus scene-level properties such as panel colours and wipe lengths. |
 | **Brand** tab | Global tokens declared with `brand()`: palette, backgrounds, fonts. Change one and every scene follows. |
+| **Audio** (bottom of the timeline) | Every `<Sound>` as a clip with its waveform: sound effects packed into lanes above the **Music** lane. Drag a clip to re-time it (`⇧`-click to move several together), click it to edit **volume**, **mute**, **start**, or **Replace…** the file with any audio in `public/` or an upload. **+ Sound** drops a new file at the playhead. Saved as `shift` / `volume` / `muted` / `src` props on the `<Sound>` in code; added sounds live in `layout.json` and play everywhere via `<LayoutSounds/>`. |
 | **Timeline** | *Scenes* track pinned under the ruler: drag a scene's right edge to trim it. One clip per element: drag to shift it in time; drag the bright bar inside a clip to re-time that element's entrance. **`⇧`-click clips to select several (`⌘`-click toggles), then drag any of them to slide the whole group.** Ruler scrubs; zoom; resizable. |
 
 `⌘S` **saves into the source**: literals are rewritten in place (`edit("id", 108)` → `edit("id", 140)`,
@@ -67,7 +68,12 @@ const card = useAnim("hero.card.in", { delay: 6, preset: "smooth", from: { x: -1
 // 5. Brand tokens — usable outside components (e.g. theme getters)
 get hero() { return brand("brand.hero", "#E9573F", { label: "Hero", group: "Colors" }); }
 
-// 6. Scene lengths in a literal table the editor can rewrite
+// 6. Sounds — every sound effect / music bed is a <Sound> so it shows on the audio tracks
+<Sound id="hero.whoosh" src="sfx/whoosh.wav" at={12} volume={0.7} label="Whoosh" />
+<Sound id="music.bed" src="music/bed.mp3" at={0} volume={0.25} kind="music" label="Music bed" />
+<LayoutSounds />   // once, in the root: plays sounds people add in the editor
+
+// 7. Scene lengths in a literal table the editor can rewrite
 export const SCENES = [{ id: "intro", label: "Intro", component: Intro, duration: 90 }, …];
 <Sequence durationInFrames={sceneDuration(layout, "intro", 90)}>…</Sequence>
 ```
@@ -78,7 +84,7 @@ Rules that make the round-trip work:
 - The composition takes `{ layout }` as a prop and wraps its tree in `<LayoutProvider layout={layout}>`; `src/editor.ts` exports `defineProject({...})` (id, name, component, size, fps, scenes, entryPoint, `registerBrand` to pre-register tokens).
 
 See `~/superconductor/projects/thumb-mcp/video` for a complete example (the thumb MCP launch video:
-30 elements, 80+ editable values, 20 animations, 17 brand tokens).
+30 elements, 80+ editable values, 20 animations, 17 brand tokens, 91 sounds).
 
 ## How it works
 
@@ -99,6 +105,7 @@ npm run dev              start the editor
 npm run init <dir>       install the SDK into a project
 node scripts/e2e.mjs     browser end-to-end test (33 checks incl. save → source diff → reload)
 node scripts/multiselect.mjs  multi-select + group move (timeline and canvas)
+node scripts/audio.mjs        audio tracks: drag/replace/volume/mute/add, save → code
 node scripts/playpause.mjs    play/pause through the real UI controls
 node scripts/perf.mjs    main-thread ms/frame during playback
 node scripts/profile.mjs CPU profile of playback

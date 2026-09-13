@@ -13,9 +13,9 @@
 import React, {
   createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, useSyncExternalStore,
 } from "react";
-import { Easing, Sequence, interpolate, measureSpring, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { Audio, Easing, Internals, Sequence, interpolate, measureSpring, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 
-export const INSYD_SDK_VERSION = 2;
+export const INSYD_SDK_VERSION = 3;
 
 // ---------- Layout: the single override document ----------
 
@@ -26,14 +26,27 @@ export type ElementTransform = {
 };
 export const DEFAULT_TRANSFORM: ElementTransform = { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1, hidden: false, delay: 0 };
 
+export type SoundKind = "sfx" | "music" | "voice";
+export type SoundOverride = {
+  /** frames to move the sound later (negative = earlier) */
+  shift?: number;
+  volume?: number;
+  muted?: boolean;
+  /** replacement file, relative to public/ (or an absolute URL) */
+  src?: string;
+  /** a sound created in the editor (no code counterpart) — rendered by <LayoutSounds/> */
+  added?: boolean; at?: number; label?: string; kind?: SoundKind; loop?: boolean;
+};
+
 export type Layout = {
   version: number;
   elements: Record<string, Partial<ElementTransform>>;
   copy: Record<string, string>;
   scenes: Record<string, number>; // scene id -> duration in frames
   props: Record<string, unknown>; // edit()/brand()/useAnim() overrides by id
+  sounds: Record<string, SoundOverride>; // <Sound id> overrides + editor-added sounds
 };
-export const emptyLayout = (): Layout => ({ version: INSYD_SDK_VERSION, elements: {}, copy: {}, scenes: {}, props: {} });
+export const emptyLayout = (): Layout => ({ version: INSYD_SDK_VERSION, elements: {}, copy: {}, scenes: {}, props: {}, sounds: {} });
 
 export const mergeLayout = (base: Layout, over?: Partial<Layout> | null): Layout => ({
   version: INSYD_SDK_VERSION,
@@ -41,6 +54,7 @@ export const mergeLayout = (base: Layout, over?: Partial<Layout> | null): Layout
   copy: { ...base.copy, ...(over?.copy ?? {}) },
   scenes: { ...base.scenes, ...(over?.scenes ?? {}) },
   props: { ...base.props, ...(over?.props ?? {}) },
+  sounds: { ...(base.sounds ?? {}), ...(over?.sounds ?? {}) },
 });
 
 // ---------- Contexts ----------
@@ -224,6 +238,31 @@ const channels: Record<Channel, { elements: Map<string, ElementEntry>; listeners
   main: { elements: new Map(), listeners: new Set(), snapshot: [], scheduled: false },
   scan: { elements: new Map(), listeners: new Set(), snapshot: [], scheduled: false },
 };
+
+export type SoundEntry = {
+  id: string; label: string; kind: SoundKind;
+  /** effective file (override or code), relative to public/ or absolute */
+  src: string;
+  /** resolved URL the browser can load */
+  url: string;
+  /** effective start, absolute timeline frame (includes shift) */
+  absStart: number;
+  /** effective shift (override or code default) */
+  shift: number;
+  volume: number; muted: boolean; repeat: number; every: number; loop: boolean;
+  /** defaults as written in the code */
+  defaults: { shift: number; volume: number; muted: boolean; src: string };
+  added: boolean;
+};
+const soundChannels: Record<Channel, { sounds: Map<string, SoundEntry>; listeners: Set<Listener>; snapshot: SoundEntry[]; scheduled: boolean }> = {
+  main: { sounds: new Map(), listeners: new Set(), snapshot: [], scheduled: false },
+  scan: { sounds: new Map(), listeners: new Set(), snapshot: [], scheduled: false },
+};
+const scheduleSound = (channel: Channel) => {
+  const ch = soundChannels[channel];
+  if (ch.scheduled) return; ch.scheduled = true;
+  queueMicrotask(() => { ch.scheduled = false; ch.snapshot = Array.from(ch.sounds.values()); ch.listeners.forEach((l) => l()); });
+};
 const props = new Map<string, PropEntry>();
 const propListeners = new Set<Listener>();
 let propSnapshot: PropEntry[] = [];
@@ -253,6 +292,14 @@ export const registry = {
     if (cur && cur.owner === p.owner && cur.kind === p.kind && JSON.stringify(cur.value) === JSON.stringify(p.value) && JSON.stringify(cur.meta) === JSON.stringify(p.meta)) return;
     props.set(p.id, p); propDirty = true; schedule("prop");
   },
+  reportSound(entry: SoundEntry, channel: Channel = "main") {
+    const cur = soundChannels[channel].sounds.get(entry.id);
+    if (cur && JSON.stringify(cur) === JSON.stringify(entry)) return;
+    soundChannels[channel].sounds.set(entry.id, entry); scheduleSound(channel);
+  },
+  removeSound(id: string, channel: Channel = "main") { if (soundChannels[channel].sounds.delete(id)) scheduleSound(channel); },
+  subscribeSounds(l: Listener, channel: Channel = "main") { soundChannels[channel].listeners.add(l); return () => { soundChannels[channel].listeners.delete(l); }; },
+  getSounds: (channel: Channel = "main") => soundChannels[channel].snapshot,
   subscribeElements(l: Listener, channel: Channel = "main") { channels[channel].listeners.add(l); return () => { channels[channel].listeners.delete(l); }; },
   subscribeProps(l: Listener) { propListeners.add(l); return () => { propListeners.delete(l); }; },
   getElements: (channel: Channel = "main") => channels[channel].snapshot,
@@ -282,6 +329,9 @@ if (typeof window !== "undefined") (window as any).__insydRegistry = registry;
 const mainSub = (l: Listener) => registry.subscribeElements(l, "main");
 const mainGet = () => registry.getElements("main");
 export const useElements = () => useSyncExternalStore(mainSub, mainGet, mainGet);
+const soundSub = (l: Listener) => registry.subscribeSounds(l, "main");
+const soundGet = () => registry.getSounds("main");
+export const useSounds = () => useSyncExternalStore(soundSub, soundGet, soundGet);
 export const useProps = () => useSyncExternalStore(registry.subscribeProps, registry.getProps, registry.getProps);
 
 // ---------- Editable ----------
@@ -354,6 +404,76 @@ const EditableBody: React.FC<{
     >
       {children}
     </div>
+  );
+};
+
+// ---------- Sound ----------
+
+export const resolveAudioSrc = (src: string) => (/^(https?:|data:|blob:|\/)/.test(src) ? src : staticFile(src));
+
+export type SoundProps = {
+  id: string;
+  /** file relative to public/ (or an absolute URL) */
+  src: string;
+  /** start frame, relative to the enclosing Sequence */
+  at?: number;
+  volume?: number;
+  muted?: boolean;
+  /** saved re-timing, in frames (the editor writes this) */
+  shift?: number;
+  label?: string;
+  kind?: SoundKind;
+  /** play the file `repeat` times, `every` frames apart (key ticks, counters) */
+  repeat?: number;
+  every?: number;
+  loop?: boolean;
+  /** editor-added sound */
+  added?: boolean;
+};
+
+/**
+ * An editable sound. Plays `src` at `at` (+ `shift`); the editor can re-time, replace, re-level
+ * and mute it, and shows it as a clip on the audio tracks.
+ */
+export const Sound: React.FC<SoundProps> = ({ id, src, at = 0, volume = 1, muted = false, shift = 0, label, kind = "sfx", repeat = 1, every = 2, loop = false, added = false }) => {
+  const layout = useContext(LayoutContext);
+  const channel = useChannel();
+  const o = layout.sounds?.[id] ?? {};
+  const eff = { src: o.src ?? src, volume: o.volume ?? volume, muted: o.muted ?? muted, shift: o.shift ?? shift };
+  const start = at + eff.shift;
+  const local = useCurrentFrame();
+  const timeline = Internals.useTimelinePosition();
+  const absStart = timeline - local + start;
+  const url = resolveAudioSrc(eff.src);
+  useLayoutEffect(() => {
+    if (!channel) return;
+    registry.reportSound({
+      id, label: label ?? id, kind, src: eff.src, url, absStart, shift: eff.shift, volume: eff.volume, muted: eff.muted, repeat, every, loop,
+      defaults: { shift, volume, muted, src }, added,
+    }, channel);
+  }, [channel, id, label, kind, eff.src, url, absStart, eff.shift, eff.volume, eff.muted, repeat, every, loop, shift, volume, muted, src, added]);
+  useLayoutEffect(() => () => { if (channel) registry.removeSound(id, channel); }, [channel, id]);
+  if (eff.muted || eff.volume <= 0) return null;
+  return (
+    <>
+      {Array.from({ length: Math.max(1, repeat) }).map((_, i) => (
+        <Sequence key={i} from={start + i * every} layout="none" name={`sound:${id}`}>
+          <Audio src={url} volume={eff.volume} loop={loop} />
+        </Sequence>
+      ))}
+    </>
+  );
+};
+
+/** Renders sounds that were added in the editor (stored in the layout, not in code). Put it once in the root. */
+export const LayoutSounds: React.FC = () => {
+  const layout = useContext(LayoutContext);
+  return (
+    <>
+      {Object.entries(layout.sounds ?? {}).filter(([, o]) => o.added && o.src).map(([id, o]) => (
+        <Sound key={id} id={id} src={o.src!} at={o.at ?? 0} volume={o.volume ?? 0.8} muted={o.muted} label={o.label ?? o.src} kind={o.kind ?? "sfx"} loop={o.loop} added />
+      ))}
+    </>
   );
 };
 

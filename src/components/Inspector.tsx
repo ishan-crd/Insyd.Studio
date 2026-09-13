@@ -5,6 +5,7 @@ import { seconds } from "../lib/format";
 import { NumberField, TextField, BoolField, PropControl } from "./Fields";
 import { Block, Image, Text } from "../lib/icons";
 import { propsOf } from "../lib/owners";
+import { SoundInspector } from "./SoundInspector";
 
 const KindIcon: React.FC<{ kind: string }> = ({ kind }) => (kind === "text" ? <Text /> : kind === "image" ? <Image /> : <Block />);
 
@@ -108,6 +109,8 @@ export const Inspector: React.FC = () => {
         </div>
       </>
     );
+  } else if (selection?.type === "sound") {
+    body = <SoundInspector id={selection.id} />;
   } else if (selection?.type === "scene") {
     const sc = scenes.find((s) => s.id === selection.id)!;
     const d = layout.scenes[sc.id] ?? sc.duration;
@@ -144,6 +147,7 @@ export const Inspector: React.FC = () => {
         <div className="field"><label>Scenes</label><div>{scenes.length}</div></div>
         <div className="field"><label>Elements</label><div>{scan.elements.length}</div></div>
         <div className="field"><label>Editable values</label><div>{props.length}</div></div>
+        <div className="field"><label>Sounds</label><div>{scan.sounds.length}</div></div>
         <div className="hint" style={{ marginTop: 8 }}>Drag elements directly on the preview. Corner handles scale. Hold <span className="kbd">⇧</span> to constrain; elements snap to the centre lines. Save writes your changes into the source files.</div>
       </>
     );

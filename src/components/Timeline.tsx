@@ -7,6 +7,7 @@ import { sceneColor } from "../lib/colors";
 import { timecode } from "../lib/format";
 import { Block, Chevron, Eye, EyeOff, Image, Text } from "../lib/icons";
 import { propsOf } from "../lib/owners";
+import { useAudioRows } from "./AudioTracks";
 
 const ROW = { ruler: 28, scene: 40, grp: 24, el: 28 };
 const KindIcon: React.FC<{ kind: string }> = ({ kind }) => (kind === "text" ? <Text /> : kind === "image" ? <Image /> : <Block />);
@@ -124,6 +125,7 @@ export const Timeline: React.FC = () => {
   };
 
   const elementIds = useMemo(() => scan.elements.map((e) => e.id), [scan.elements]);
+  const audio = useAudioRows(ppf, scrub, drag);
   const rows: React.ReactNode[] = [];
   const names: React.ReactNode[] = [];
   scenes.forEach((sc) => {
@@ -187,7 +189,7 @@ export const Timeline: React.FC = () => {
         {scan.status === "running" ? (
           <div className="scanbar">Analyzing elements <div className="bar"><i style={{ width: `${scan.progress * 100}%` }} /></div></div>
         ) : (
-          <span style={{ color: "var(--text-3)", fontSize: 12 }}>{multi.length > 1 ? <b style={{ color: "var(--accent)" }}>{multi.length} selected · drag any of them to slide the group · </b> : null}{scenes.length} scenes · {scan.elements.length} elements · ⇧-click clips to multi-select · drag scene edges to trim · drag the bright bar inside a clip to re-time its entrance</span>
+          <span style={{ color: "var(--text-3)", fontSize: 12 }}>{multi.length > 1 ? <b style={{ color: "var(--accent)" }}>{multi.length} selected · drag any of them to slide the group · </b> : null}{scenes.length} scenes · {scan.elements.length} elements · {scan.sounds.length} sounds · ⇧-click clips to multi-select · drag scene edges to trim · drag the bright bar inside a clip to re-time its entrance</span>
         )}
         <div className="spacer" />
         <span style={{ color: "var(--text-3)", fontSize: 12 }}>Zoom</span>
@@ -199,6 +201,7 @@ export const Timeline: React.FC = () => {
           <div className="trow ruler" style={{ height: ROW.ruler }} />
           <div className="trow scene"><div className="tname" style={{ height: ROW.scene, fontWeight: 600 }}>Scenes</div></div>
           {names}
+          {audio.names}
         </div>
         <div className="tl-tracks" ref={tracksRef} onScroll={(e) => { if (namesRef.current) namesRef.current.scrollTop = (e.target as HTMLDivElement).scrollTop; }}>
           <div className="tl-inner" style={{ width: innerW }}>
@@ -219,6 +222,7 @@ export const Timeline: React.FC = () => {
               })}
             </div>
             {rows}
+            {audio.rows}
             <Playhead ppf={ppf} tracksRef={tracksRef} />
           </div>
         </div>

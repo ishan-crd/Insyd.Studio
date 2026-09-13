@@ -139,10 +139,11 @@ app.post("/api/apply", async (req, res) => {
     files.forEach((f) => vite?.watcher.unwatch(f));
     const result = applyLayout(dir, layout);
     const fallbackPath = path.join(dir, layoutFile);
-    let fallback = { version: 2, elements: {}, copy: {}, scenes: {}, props: {} };
+    let fallback = { version: 3, elements: {}, copy: {}, scenes: {}, props: {}, sounds: {} };
     try { fallback = { ...fallback, ...JSON.parse(await fsp.readFile(fallbackPath, "utf8")) }; } catch {}
     // resolved ids leave the fallback file; unresolved ones are stored there
-    for (const k of ["elements", "copy", "scenes", "props"]) {
+    for (const k of ["elements", "copy", "scenes", "props", "sounds"]) {
+      fallback[k] = fallback[k] ?? {};
       for (const id of Object.keys(result.applied[k])) delete fallback[k][id];
       Object.assign(fallback[k], result.unresolved[k]);
     }
@@ -154,6 +155,39 @@ app.post("/api/apply", async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message, stack: e.stack });
   }
+});
+
+// ---------- audio files ----------
+const AUDIO_EXT = /\.(wav|mp3|m4a|aac|ogg|flac|webm)$/i;
+app.get("/api/audio/list", (_req, res) => {
+  const dir = process.env.INSYD_PROJECT;
+  if (!dir) return res.status(400).json({ error: "No project open" });
+  const pub = path.join(dir, "public");
+  const out = [];
+  const walk = (d) => {
+    if (!fs.existsSync(d)) return;
+    for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (AUDIO_EXT.test(e.name)) out.push({ src: path.relative(pub, p).split(path.sep).join("/"), bytes: fs.statSync(p).size });
+    }
+  };
+  walk(pub);
+  res.json({ files: out.sort((a, b) => a.src.localeCompare(b.src)) });
+});
+// Upload (base64 JSON) into public/<dir>/; returns the src to use in the layout/code.
+app.post("/api/audio/upload", async (req, res) => {
+  const dir = process.env.INSYD_PROJECT;
+  if (!dir) return res.status(400).json({ error: "No project open" });
+  const { name, data, folder = "sfx", overwrite = false } = req.body;
+  if (!name || !data || !AUDIO_EXT.test(name)) return res.status(400).json({ error: "Need an audio file (wav, mp3, m4a, aac, ogg, flac)" });
+  const safe = name.replace(/[^\w.\- ]+/g, "_");
+  const target = path.join(dir, "public", folder);
+  await fsp.mkdir(target, { recursive: true });
+  let file = path.join(target, safe);
+  if (!overwrite && fs.existsSync(file)) { const ext = path.extname(safe); file = path.join(target, `${path.basename(safe, ext)}-${Date.now().toString(36)}${ext}`); }
+  await fsp.writeFile(file, Buffer.from(data, "base64"));
+  res.json({ src: path.relative(path.join(dir, "public"), file).split(path.sep).join("/") });
 });
 
 // ---------- render ----------

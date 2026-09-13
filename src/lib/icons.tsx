@@ -39,3 +39,8 @@ export const Wordmark = ({ size = 15 }: { size?: number }) => (
     <span style={{ fontWeight: 500, fontSize: Math.round(size * 0.62), letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-3)", marginTop: 2 }}>By Insyd</span>
   </span>
 );
+export const Music = () => <I d={["M9 18V6l10-2v12", "M9 18a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z", "M19 16a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"]} />;
+export const Waveform = () => <I d={["M3 12h2", "M7 8v8", "M11 5v14", "M15 9v6", "M19 11v2"]} />;
+export const Plus = () => <I d={["M12 5v14", "M5 12h14"]} />;
+export const Upload = () => <I d={["M12 16V4", "M7 9l5-5 5 5", "M4 20h16"]} />;
+export const VolumeIcon = () => <I d={["M4 10v4h4l5 4V6L8 10z", "M16 9a4 4 0 0 1 0 6"]} />;

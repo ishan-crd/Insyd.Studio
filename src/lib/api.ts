@@ -22,5 +22,7 @@ export const api = {
     post<{ id: string; outputLocation: string }>("/api/render", body),
   cancelRender: (id: string) => post("/api/render/" + id + "/cancel"),
   reveal: (path: string) => post("/api/reveal", { path }),
+  audioList: () => fetch("/api/audio/list").then((r) => j<{ files: { src: string; bytes: number }[] }>(r)),
+  audioUpload: (name: string, data: string, folder = "sfx") => post<{ src: string }>("/api/audio/upload", { name, data, folder }),
   openFile: (path: string) => post("/api/open-file", { path }),
 };

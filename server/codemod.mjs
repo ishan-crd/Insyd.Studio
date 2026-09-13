@@ -11,6 +11,9 @@ import MagicString from "magic-string";
 
 const CALLS = new Set(["edit", "brand", "useCopy", "useAnim", "useAnimSpec", "useSceneDuration"]);
 const TRANSFORM_KEYS = ["x", "y", "scale", "rotate", "opacity", "hidden", "delay"];
+const SOUND_TAGS = new Set(["Sound", "Sfx", "KeyTicks"]);
+const SOUND_KEYS = ["shift", "volume", "muted", "src"];
+const SOUND_DEFAULTS = { shift: 0, muted: false };
 const TRANSFORM_DEFAULTS = { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1, hidden: false, delay: 0 };
 
 export const listSourceFiles = (dir) => {
@@ -86,6 +89,17 @@ export const indexFile = (file) => {
       // insertion point: right after the id attribute
       entries.push({ locator: `jsx:${idAttr.value.value}`, start: n.start, end: n.end, insertAt: idAttr.end, attrs, selfClosing: n.selfClosing });
     }
+    if (n.type === "JSXOpeningElement" && n.name.type === "JSXIdentifier" && SOUND_TAGS.has(n.name.name)) {
+      const idAttr = n.attributes.find((a) => a.type === "JSXAttribute" && a.name.name === "id" && a.value?.type === "StringLiteral");
+      if (!idAttr) return;
+      const attrs = {};
+      for (const a of n.attributes) {
+        if (a.type !== "JSXAttribute" || !SOUND_KEYS.includes(a.name.name)) continue;
+        const v = a.value === null ? true : litValue(a.value);
+        attrs[a.name.name] = { start: a.start, end: a.end, value: v, literal: v !== undefined };
+      }
+      entries.push({ locator: `sound:${idAttr.value.value}`, start: n.start, end: n.end, insertAt: idAttr.end, attrs });
+    }
     if (n.type === "ObjectExpression") {
       const idP = n.properties.find((p) => p.type === "ObjectProperty" && p.key.type === "Identifier" && p.key.name === "id" && p.value.type === "StringLiteral");
       const durP = n.properties.find((p) => p.type === "ObjectProperty" && p.key.type === "Identifier" && (p.key.name === "duration" || p.key.name === "durationInFrames") && p.value.type === "NumericLiteral");
@@ -125,8 +139,8 @@ export const applyLayout = (dir, layout) => {
   const { byLocator } = buildIndex(dir);
   const edits = new Map(); // file -> [{start,end,text}]
   const push = (file, start, end, text) => { if (!edits.has(file)) edits.set(file, []); edits.get(file).push({ start, end, text }); };
-  const applied = { elements: {}, copy: {}, scenes: {}, props: {} };
-  const unresolved = { elements: {}, copy: {}, scenes: {}, props: {} };
+  const applied = { elements: {}, copy: {}, scenes: {}, props: {}, sounds: {} };
+  const unresolved = { elements: {}, copy: {}, scenes: {}, props: {}, sounds: {} };
 
   for (const [id, v] of Object.entries(layout.props ?? {})) {
     const e = byLocator.get(`call:${id}`);
@@ -139,6 +153,20 @@ export const applyLayout = (dir, layout) => {
   for (const [id, frames] of Object.entries(layout.scenes ?? {})) {
     const e = byLocator.get(`scene:${id}`);
     if (e) { push(e.file, e.start, e.end, toLiteral(frames)); applied.scenes[id] = frames; } else unresolved.scenes[id] = frames;
+  }
+  // Sounds: replace/insert each overridden attribute; editor-added sounds have no code and stay in layout.json.
+  for (const [id, o] of Object.entries(layout.sounds ?? {})) {
+    const e = byLocator.get(`sound:${id}`);
+    if (!e || o.added) { unresolved.sounds[id] = o; continue; }
+    for (const k of SOUND_KEYS) {
+      if (o[k] === undefined) continue;
+      const isDefault = SOUND_DEFAULTS[k] !== undefined && o[k] === SOUND_DEFAULTS[k];
+      const text = isDefault ? "" : o[k] === true ? ` ${k}` : typeof o[k] === "string" ? ` ${k}=${JSON.stringify(o[k])}` : ` ${k}={${toLiteral(o[k])}}`;
+      const cur = e.attrs[k];
+      if (cur) push(e.file, cur.start - 1, cur.end, text);
+      else if (text) push(e.file, e.insertAt, e.insertAt, text);
+    }
+    applied.sounds[id] = o;
   }
   for (const [id, t] of Object.entries(layout.elements ?? {})) {
     const e = byLocator.get(`jsx:${id}`);

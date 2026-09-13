@@ -148,6 +148,7 @@ input[type="number"] { font-family: var(--mono); font-size: 12px; }
 .tname { display: flex; align-items: center; gap: 8px; padding: 0 10px; color: var(--text-2); font-size: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .tname.grp { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); cursor: pointer; }
 .tname .chip { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.tname > svg { width: 13px; height: 13px; flex-shrink: 0; opacity: 0.7; }
 .tname.on { color: var(--text); }
 .tname .eye { margin-left: auto; opacity: 0.5; cursor: pointer; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; }
 .tname .eye:hover { background: var(--panel-3); opacity: 1; }
@@ -200,3 +201,17 @@ input[type="number"] { font-family: var(--mono); font-size: 12px; }
 .help { position: absolute; right: 14px; top: 54px; width: 300px; background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: var(--shadow); padding: 12px 14px; z-index: 40; }
 .help h4 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); }
 .help div { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; color: var(--text-2); font-size: 12px; }
+
+/* ---------- audio tracks ---------- */
+.aclip { position: absolute; border-radius: 5px; background: color-mix(in srgb, var(--clip) 18%, var(--panel-3)); border: 1px solid color-mix(in srgb, var(--clip) 45%, transparent); cursor: grab; overflow: hidden; }
+.aclip:hover { border-color: var(--clip); }
+.aclip.on { border-color: #fff; box-shadow: 0 0 0 1px var(--clip); background: color-mix(in srgb, var(--clip) 30%, var(--panel-3)); }
+.aclip.muted { opacity: 0.35; border-style: dashed; }
+.aclip .alabel { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); font-size: 10.5px; color: var(--text); white-space: nowrap; display: flex; gap: 6px; align-items: center; text-shadow: 0 1px 2px rgba(0,0,0,0.8); pointer-events: none; }
+.aclip .avol { font-family: var(--mono); font-size: 9.5px; color: var(--text-2); }
+.aclip .delay { font-family: var(--mono); font-size: 9.5px; color: var(--accent); }
+.popover { position: absolute; top: 24px; left: 0; width: 360px; background: var(--panel-2); border: 1px solid var(--line-2); border-radius: 12px; box-shadow: var(--shadow); z-index: 30; }
+.popover-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 8px 12px; font-weight: 600; font-size: 12px; border-bottom: 1px solid var(--line); }
+.popover-body { max-height: 240px; overflow: auto; padding: 6px; }
+.popover-foot { display: flex; align-items: center; gap: 10px; padding: 8px; border-top: 1px solid var(--line); }
+.wave-full { width: 100%; height: 56px; display: block; background: var(--panel-3); border-radius: 8px; }

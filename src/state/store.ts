@@ -1,9 +1,11 @@
 import { create } from "zustand";
-import type { ElementKind, ElementTransform, Layout, ProjectDefinition } from "@project/sdk";
+import type { ElementKind, ElementTransform, Layout, ProjectDefinition, SoundKind, SoundOverride } from "@project/sdk";
 import { DEFAULT_TRANSFORM, mergeLayout, emptyLayout, projectDuration, sceneDuration } from "@project/sdk";
 
-export type Selection = { type: "element"; id: string } | { type: "scene"; id: string } | { type: "brand" } | null;
+export type Selection = { type: "element"; id: string } | { type: "scene"; id: string } | { type: "brand" } | { type: "sound"; id: string } | null;
 export type ScanElement = { id: string; label: string; kind: ElementKind; first: number; last: number; sceneId: string };
+/** a sound discovered by the scan, at its natural (unshifted) absolute start */
+export type ScanSound = { id: string; label: string; kind: SoundKind; natural: number; repeat: number; every: number; defaults: { shift: number; volume: number; muted: boolean; src: string }; added: boolean };
 export type SceneSpan = { id: string; label: string; from: number; duration: number; index: number };
 export type CodeIndex = { locators: Record<string, { file: string; literal: boolean }> };
 
@@ -24,7 +26,7 @@ type State = {
   hover: string | null;
   zoom: number | null;
   collapsed: Record<string, boolean>;
-  scan: { status: "idle" | "running" | "done"; progress: number; elements: ScanElement[] };
+  scan: { status: "idle" | "running" | "done"; progress: number; elements: ScanElement[]; sounds: ScanSound[] };
   toast: string | null;
   saving: boolean;
 
@@ -56,6 +58,11 @@ type State = {
   setProp: (id: string, value: unknown, commit?: boolean) => void;
   resetProp: (id: string) => void;
   setSceneDuration: (id: string, frames: number, commit?: boolean) => void;
+  setSound: (id: string, patch: SoundOverride, commit?: boolean) => void;
+  setSounds: (patches: Record<string, SoundOverride>, commit?: boolean) => void;
+  resetSound: (id: string) => void;
+  addSound: (s: { src: string; at: number; volume?: number; kind?: SoundKind; label?: string }) => string;
+  removeSound: (id: string) => void;
   undo: () => void;
   redo: () => void;
   markSaved: (saved: Layout) => void;
@@ -69,7 +76,7 @@ const eq = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export const diffLayout = (layout: Layout, saved: Layout): Layout => {
   const out = emptyLayout();
-  for (const k of ["elements", "copy", "scenes", "props"] as const) {
+  for (const k of ["elements", "copy", "scenes", "props", "sounds"] as const) {
     for (const [id, v] of Object.entries(layout[k])) if (!eq(v, (saved[k] as any)[id])) (out[k] as any)[id] = v;
   }
   return out;
@@ -80,7 +87,7 @@ export const useStore = create<State>((set, get) => ({
   layout: emptyLayout(), saved: emptyLayout(),
   past: [], future: [], txn: null, index: null, codeDefaults: {},
   selection: null, multi: [], hover: null, zoom: null, collapsed: {},
-  scan: { status: "idle", progress: 0, elements: [] },
+  scan: { status: "idle", progress: 0, elements: [], sounds: [] },
   toast: null, saving: false,
 
   duration: () => { const { def, layout } = get(); return def ? projectDuration(def, layout) : 1; },
@@ -106,7 +113,7 @@ export const useStore = create<State>((set, get) => ({
   },
   setIndex: (index) => set({ index }),
   setCodeDefaults: (codeDefaults) => set({ codeDefaults }),
-  select: (selection) => set({ selection, multi: selection?.type === "element" ? [selection.id] : [] }),
+  select: (selection) => set({ selection, multi: selection?.type === "element" || selection?.type === "sound" ? [selection.id] : [] }),
   addToSelection: (id, toggle = false) => {
     const { multi } = get();
     if (toggle && multi.includes(id)) {
@@ -115,9 +122,9 @@ export const useStore = create<State>((set, get) => ({
       return;
     }
     const next = multi.includes(id) ? multi : [...multi, id];
-    set({ multi: next, selection: { type: "element", id } });
+    set({ multi: next, selection: { type: get().selection?.type === "sound" ? "sound" : "element", id } });
   },
-  selectedIds: () => { const s = get(); return s.selection?.type === "element" ? (s.multi.length ? s.multi : [s.selection.id]) : []; },
+  selectedIds: () => { const s = get(); return s.selection?.type === "element" || s.selection?.type === "sound" ? (s.multi.length ? s.multi : [s.selection.id]) : []; },
   setHover: (hover) => set({ hover }),
   setZoom: (zoom) => set({ zoom }),
   toggleCollapsed: (id) => set((s) => ({ collapsed: { ...s.collapsed, [id]: !s.collapsed[id] } })),
@@ -168,6 +175,36 @@ export const useStore = create<State>((set, get) => ({
     set({ layout: { ...s.layout, scenes: { ...s.layout.scenes, [id]: Math.max(6, Math.round(frames)) } } });
     if (commit) get().end();
   },
+  setSound: (id, patch, commit = true) => {
+    const s = get(); if (commit) s.begin();
+    set({ layout: { ...s.layout, sounds: { ...s.layout.sounds, [id]: { ...(s.layout.sounds[id] ?? {}), ...patch } } } });
+    if (commit) get().end();
+  },
+  setSounds: (patches, commit = true) => {
+    const s = get(); if (commit) s.begin();
+    const sounds = { ...s.layout.sounds };
+    for (const [id, patch] of Object.entries(patches)) sounds[id] = { ...(sounds[id] ?? {}), ...patch };
+    set({ layout: { ...s.layout, sounds } });
+    if (commit) get().end();
+  },
+  resetSound: (id) => {
+    const s = get(); s.begin();
+    const sounds = { ...s.layout.sounds }; delete sounds[id];
+    set({ layout: { ...s.layout, sounds } }); get().end();
+  },
+  addSound: ({ src, at, volume = 0.8, kind = "sfx", label }) => {
+    const s = get(); s.begin();
+    const id = `added.${Date.now().toString(36)}`;
+    set({ layout: { ...s.layout, sounds: { ...s.layout.sounds, [id]: { added: true, src, at: Math.max(0, Math.round(at)), volume, kind, label: label ?? src.split("/").pop() } } }, selection: { type: "sound", id }, multi: [] });
+    get().end();
+    return id;
+  },
+  removeSound: (id) => {
+    const s = get(); s.begin();
+    const sounds = { ...s.layout.sounds }; delete sounds[id];
+    set({ layout: { ...s.layout, sounds }, selection: s.selection?.type === "sound" && s.selection.id === id ? null : s.selection });
+    get().end();
+  },
   undo: () => { const { past, future, layout } = get(); if (!past.length) return; set({ layout: past[past.length - 1], past: past.slice(0, -1), future: [layout, ...future] }); },
   redo: () => { const { past, future, layout } = get(); if (!future.length) return; set({ layout: future[0], future: future.slice(1), past: [...past, layout] }); },
   markSaved: (saved) => set({ saved }),
@@ -178,3 +215,9 @@ export const useStore = create<State>((set, get) => ({
 
 export const sceneAt = (scenes: SceneSpan[], frame: number) =>
   scenes.find((s) => frame >= s.from && frame < s.from + s.duration) ?? scenes[scenes.length - 1];
+
+/** ids in the multi-selection when the primary selection is of `type` */
+export const selectedOf = (type: "element" | "sound") => {
+  const s = useStore.getState();
+  return s.selection?.type === type ? (s.multi.length ? s.multi : [s.selection.id]) : [];
+};
