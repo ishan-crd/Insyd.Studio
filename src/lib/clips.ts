@@ -3,6 +3,10 @@
 import type { SoundOverride, ElementTransform } from "@project/sdk";
 import { useStore, selectedOf } from "../state/store";
 import { usePlayback } from "../state/playback";
+import { playerRef } from "./player";
+
+/** Current frame straight from the Player (the playback store lags a tick behind seeks). */
+export const playhead = () => playerRef.current?.getCurrentFrame() ?? usePlayback.getState().frame;
 import type { SoundClip } from "../components/AudioTracks";
 
 export type SoundClipboardItem = { rel: number; src: string; volume: number; kind: SoundOverride["kind"]; label: string; trimStart: number; duration: number | null; loop?: boolean };
@@ -57,7 +61,7 @@ export const deleteSounds = (ids = selectedOf("sound")) => {
 
 export const cutSounds = (ids = selectedOf("sound")) => { if (copySounds(ids)) deleteSounds(ids); };
 
-export const pasteSounds = (at = usePlayback.getState().frame) => {
+export const pasteSounds = (at = playhead()) => {
   if (!clipboard || clipboard.type !== "sound") return;
   const s = useStore.getState();
   s.begin();
@@ -91,7 +95,7 @@ export const duplicateSounds = (ids = selectedOf("sound")) => {
 };
 
 /** Split every selected sound that crosses `frame` into two clips. */
-export const splitSounds = (frame = usePlayback.getState().frame, ids = selectedOf("sound")) => {
+export const splitSounds = (frame = playhead(), ids = selectedOf("sound")) => {
   const clips = (ids.map(soundClip).filter(Boolean) as SoundClip[]).filter((c) => !isSoundLocked(c.id) && c.repeat === 1 && frame > c.start + 1 && frame < c.start + c.frames - 1);
   if (!clips.length) { toast("Nothing to split at the playhead"); return; }
   const s = useStore.getState();
@@ -171,7 +175,7 @@ const cloneFrom = (id: string, patch: Partial<ElementTransform>) => {
   return [cid, clone] as const;
 };
 
-export const pasteElements = (at = usePlayback.getState().frame) => {
+export const pasteElements = (at = playhead()) => {
   if (!clipboard || clipboard.type !== "element") return;
   const s = useStore.getState();
   const scenes = s.scenes();
@@ -226,7 +230,7 @@ export const deleteElements = (ids = selectedOf("element")) => {
 };
 
 /** Split at `frame`: the original keeps the first part (trimOut), a linked copy shows the rest (trimIn). */
-export const splitElements = (frame = usePlayback.getState().frame, ids = selectedOf("element")) => {
+export const splitElements = (frame = playhead(), ids = selectedOf("element")) => {
   const s = useStore.getState();
   const targets = ids.filter((id) => {
     const info = elInfo(id); if (!info || isElementLocked(id)) return false;
