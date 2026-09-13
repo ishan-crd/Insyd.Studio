@@ -10,7 +10,6 @@ import { Music, Waveform } from "../lib/icons";
 export const SoundInspector: React.FC<{ id: string }> = ({ id }) => {
   const def = useStore((s) => s.def)!;
   const layout = useStore((s) => s.layout);
-  const multi = useStore((s) => s.multi);
   const inCode = useStore((s) => !s.index || !!s.index.locators[`sound:${id}`]);
   const clips = useSoundClips();
   const c = clips.find((x) => x.id === id);
@@ -23,10 +22,8 @@ export const SoundInspector: React.FC<{ id: string }> = ({ id }) => {
   const o = layout.sounds[id] ?? {};
   const edited = Object.keys(o).length > 0 && !c.added;
   const setStart = (f: number, commit = true) => c.added ? store().setSound(id, { at: Math.max(0, Math.round(f)) }, commit) : store().setSound(id, { shift: Math.round(f) - c.natural }, commit);
-  const group = multi.length > 1 ? multi : null;
   return (
     <>
-      {group && <div style={{ margin: "8px 6px 0", padding: "8px 10px", borderRadius: 10, background: "var(--accent-soft)", border: "1px solid var(--accent)" }}><div style={{ fontWeight: 600, fontSize: 13 }}>{group.length} sounds selected</div><div className="hint" style={{ padding: "4px 0 0" }}>Drag any of them in the timeline to move the group. Fields below edit the primary only.</div></div>}
       <div style={{ padding: "10px 12px 2px", display: "flex", gap: 10, alignItems: "center" }}>
         <span style={{ color: "var(--text-2)" }}>{c.kind === "music" ? <Music /> : <Waveform />}</span>
         <div><div style={{ fontWeight: 600, fontSize: 14 }}>{c.label}</div><div className="id">{id}{c.added ? " · added in the editor" : inCode ? "" : " · saved to layout.json"}</div></div>

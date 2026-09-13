@@ -23,6 +23,7 @@ Then **Browse…** to a project folder (or paste its path) and **Open project**.
 | **Inspector → Text** | The element's copy (`useCopy`). `\|` = line break where the template supports it. |
 | **Inspector → Transform / Timing** | X / Y, scale, rotation, opacity, visibility, and *Shift* (frames earlier/later). |
 | **Inspector → Properties** | Every `edit()` value the template declares for that element: sizes with sliders, colours with a picker, toggles, enums. |
+| **Inspector (multi-selection)** | With several items selected, only the fields they all share are shown — volume / mute / move / replace-file for sounds; move / scale / rotation / opacity / visibility / shift plus any property they all declare (e.g. *Size* across headlines) for elements. Values that differ are marked *Mixed*; every change applies to all of them as one undo step. |
 | **Inspector → Animation** | Every `useAnim()` entrance: delay, motion (spring presets / custom physics / bezier), and the *from* values (x, y, scale, opacity, rotation, blur), with a live curve preview. |
 | **Scene** (click a scene block or "Scene settings") | Duration, plus scene-level properties such as panel colours and wipe lengths. |
 | **Brand** tab | Global tokens declared with `brand()`: palette, backgrounds, fonts. Change one and every scene follows. |
@@ -106,6 +107,7 @@ npm run init <dir>       install the SDK into a project
 node scripts/e2e.mjs     browser end-to-end test (33 checks incl. save → source diff → reload)
 node scripts/multiselect.mjs  multi-select + group move (timeline and canvas)
 node scripts/marquee.mjs      rubber-band selection in the timeline
+node scripts/groupedit.mjs    group inspector: shared fields, edits applied to every selected item
 node scripts/audio.mjs        audio tracks: drag/replace/volume/mute/add, save → code
 node scripts/playpause.mjs    play/pause through the real UI controls
 node scripts/perf.mjs    main-thread ms/frame during playback
