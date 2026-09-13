@@ -19,14 +19,14 @@ Then **Browse…** to a project folder (or paste its path) and **Open project**.
 
 | Where | What |
 |---|---|
-| **Preview** | Click any element to select it (innermost wins). Drag to move; corner handles scale; `⇧`-drag constrains; elements snap to the centre lines. Double-click text to jump to its text box. |
+| **Preview** | Click any element to select it (innermost wins). Drag to move; corner handles scale; `⇧`-drag constrains; elements snap to the centre lines. `⇧`/`⌘`-click adds elements to the selection; dragging, arrow-nudging and `⌫` then act on the whole group. Double-click text to jump to its text box. |
 | **Inspector → Text** | The element's copy (`useCopy`). `\|` = line break where the template supports it. |
 | **Inspector → Transform / Timing** | X / Y, scale, rotation, opacity, visibility, and *Shift* (frames earlier/later). |
 | **Inspector → Properties** | Every `edit()` value the template declares for that element: sizes with sliders, colours with a picker, toggles, enums. |
 | **Inspector → Animation** | Every `useAnim()` entrance: delay, motion (spring presets / custom physics / bezier), and the *from* values (x, y, scale, opacity, rotation, blur), with a live curve preview. |
 | **Scene** (click a scene block or "Scene settings") | Duration, plus scene-level properties such as panel colours and wipe lengths. |
 | **Brand** tab | Global tokens declared with `brand()`: palette, backgrounds, fonts. Change one and every scene follows. |
-| **Timeline** | *Scenes* track pinned under the ruler: drag a scene's right edge to trim it. One clip per element: drag to shift it in time; drag the bright bar inside a clip to re-time that element's entrance. Ruler scrubs; zoom; resizable. |
+| **Timeline** | *Scenes* track pinned under the ruler: drag a scene's right edge to trim it. One clip per element: drag to shift it in time; drag the bright bar inside a clip to re-time that element's entrance. **`⇧`-click clips to select several (`⌘`-click toggles), then drag any of them to slide the whole group.** Ruler scrubs; zoom; resizable. |
 
 `⌘S` **saves into the source**: literals are rewritten in place (`edit("id", 108)` → `edit("id", 140)`,
 `useCopy(...)` text, `brand(...)` tokens, `useAnim(...)` specs, `<Editable x={…} y={…}>` attributes, scene
@@ -97,7 +97,9 @@ See `~/superconductor/projects/thumb-mcp/video` for a complete example (the thum
 ```
 npm run dev              start the editor
 npm run init <dir>       install the SDK into a project
-node scripts/e2e.mjs     browser end-to-end test (32 checks incl. save → source diff → reload)
+node scripts/e2e.mjs     browser end-to-end test (33 checks incl. save → source diff → reload)
+node scripts/multiselect.mjs  multi-select + group move (timeline and canvas)
+node scripts/playpause.mjs    play/pause through the real UI controls
 node scripts/perf.mjs    main-thread ms/frame during playback
 node scripts/profile.mjs CPU profile of playback
 ```

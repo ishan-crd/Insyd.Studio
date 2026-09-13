@@ -29,6 +29,7 @@ export const Timeline: React.FC = () => {
   const scenes = useStore((s) => s.scenes());
   const duration = useStore((s) => s.duration());
   const selection = useStore((s) => s.selection);
+  const multi = useStore((s) => s.multi);
   const layout = useStore((s) => s.layout);
   const codeDefaults = useStore((s) => s.codeDefaults);
   const scan = useStore((s) => s.scan);
@@ -92,11 +93,22 @@ export const Timeline: React.FC = () => {
     e.preventDefault(); store().begin();
     drag(e, (dx) => store().setSceneDuration(id, start + dx / ppf, false), () => store().end());
   };
+  // Click selects; ⇧-click adds to the selection, ⌘-click toggles. Dragging a selected clip slides
+  // every selected clip together; dragging an unselected clip selects just that one first.
   const dragClip = (e: React.PointerEvent, id: string, first: number, last: number) => {
     if (e.button !== 0) return;
-    const t0 = store().transform(id); store().begin();
-    drag(e, (dx) => store().updateElement(id, { delay: t0.delay + Math.round(dx / ppf) }, false), (moved) => {
-      store().end(); store().select({ type: "element", id });
+    const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+    if (additive) store().addToSelection(id, e.metaKey || e.ctrlKey);
+    else if (!store().selectedIds().includes(id)) store().select({ type: "element", id });
+    const ids = store().selectedIds();
+    const base = Object.fromEntries(ids.map((x) => [x, store().transform(x).delay]));
+    store().begin();
+    drag(e, (dx) => {
+      const d = Math.round(dx / ppf);
+      store().updateElements(Object.fromEntries(ids.map((x) => [x, { delay: base[x] + d }])), false);
+    }, (moved) => {
+      store().end();
+      if (!additive) useStore.setState({ selection: { type: "element", id } });
       const t = store().transform(id); const a = first + t.delay, b = last + t.delay; const f = usePlayback.getState().frame;
       if (moved || f < a || f > b) seek(a + Math.min(20, Math.floor((b - a) / 2)));
     });
@@ -127,11 +139,11 @@ export const Timeline: React.FC = () => {
     if (!open) return;
     els.forEach((e) => {
       const t = { delay: 0, hidden: false, ...(codeDefaults[e.id] ?? {}), ...(layout.elements[e.id] ?? {}) };
-      const on = selection?.type === "element" && selection.id === e.id;
+      const on = multi.includes(e.id) || (selection?.type === "element" && selection.id === e.id);
       const anims = propsOf(props, e.id, elementIds).filter((p) => p.kind === "anim");
       const clipStart = e.first + t.delay;
       names.push(
-        <div key={e.id} className="trow" data-row={e.id}><div className={`tname ${on ? "on" : ""}`} style={{ height: ROW.el }} onMouseEnter={() => store().setHover(e.id)} onMouseLeave={() => store().setHover(null)} onClick={() => store().select({ type: "element", id: e.id })}>
+        <div key={e.id} className="trow" data-row={e.id}><div className={`tname ${on ? "on" : ""}`} style={{ height: ROW.el }} onMouseEnter={() => store().setHover(e.id)} onMouseLeave={() => store().setHover(null)} onClick={(ev) => (ev.shiftKey || ev.metaKey || ev.ctrlKey) ? store().addToSelection(e.id, ev.metaKey || ev.ctrlKey) : store().select({ type: "element", id: e.id })}>
           <span style={{ display: "grid", placeItems: "center", opacity: 0.7 }}><KindIcon kind={e.kind} /></span>
           <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{e.label}</span>
           <span className="eye" onClick={(ev) => { ev.stopPropagation(); store().updateElement(e.id, { hidden: !t.hidden }); }}>{t.hidden ? <EyeOff /> : <Eye />}</span>
@@ -175,7 +187,7 @@ export const Timeline: React.FC = () => {
         {scan.status === "running" ? (
           <div className="scanbar">Analyzing elements <div className="bar"><i style={{ width: `${scan.progress * 100}%` }} /></div></div>
         ) : (
-          <span style={{ color: "var(--text-3)", fontSize: 12 }}>{scenes.length} scenes · {scan.elements.length} elements · drag scene edges to trim · drag clips to shift · drag the bright bar inside a clip to re-time its entrance</span>
+          <span style={{ color: "var(--text-3)", fontSize: 12 }}>{multi.length > 1 ? <b style={{ color: "var(--accent)" }}>{multi.length} selected · drag any of them to slide the group · </b> : null}{scenes.length} scenes · {scan.elements.length} elements · ⇧-click clips to multi-select · drag scene edges to trim · drag the bright bar inside a clip to re-time its entrance</span>
         )}
         <div className="spacer" />
         <span style={{ color: "var(--text-3)", fontSize: 12 }}>Zoom</span>

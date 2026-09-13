@@ -48,6 +48,7 @@ export const TopBar: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
           <div><span>Undo / redo</span><span><span className="kbd">⌘Z</span><span className="kbd">⇧⌘Z</span></span></div>
           <div><span>Save (writes to source files)</span><span className="kbd">⌘S</span></div>
           <div><span>Constrain drag to axis</span><span className="kbd">⇧ drag</span></div>
+          <div><span>Add to / toggle selection</span><span><span className="kbd">⇧ click</span><span className="kbd">⌘ click</span></span></div>
         </div>
       )}
     </div>

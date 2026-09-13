@@ -15,6 +15,7 @@ export const Library: React.FC = () => {
   const scenes = useStore((s) => s.scenes());
   const scan = useStore((s) => s.scan);
   const selection = useStore((s) => s.selection);
+  const multi = useStore((s) => s.multi);
   const layout = useStore((s) => s.layout);
   const codeDefaults = useStore((s) => s.codeDefaults);
   const props = useProps();
@@ -25,11 +26,12 @@ export const Library: React.FC = () => {
     if (selection?.type === "brand") setTab("brand");
   }, [selection]);
 
-  const goElement = (id: string, first: number, last: number) => {
+  const goElement = (id: string, first: number, last: number, ev?: React.MouseEvent) => {
     const s = useStore.getState();
     const t = s.transform(id);
     const a = first + t.delay, b = last + t.delay;
     const frame = usePlayback.getState().frame;
+    if (ev && (ev.shiftKey || ev.metaKey || ev.ctrlKey)) { s.addToSelection(id, ev.metaKey || ev.ctrlKey); return; }
     s.select({ type: "element", id });
     if (frame < a || frame > b) seek(Math.min(b, a + Math.min(20, Math.floor((b - a) / 2))));
   };
@@ -84,10 +86,10 @@ export const Library: React.FC = () => {
                 )}
                 {els.map((e) => {
                   const hidden = layout.elements[e.id]?.hidden ?? codeDefaults[e.id]?.hidden;
-                  const on = selection?.type === "element" && selection.id === e.id;
+                  const on = multi.includes(e.id) || (selection?.type === "element" && selection.id === e.id);
                   const n = propsOf(props, e.id, elementIds).length;
                   return (
-                    <div key={e.id} data-lib={e.id} className={`row ${on ? "on" : ""} ${hidden ? "dim" : ""}`} onClick={() => goElement(e.id, e.first, e.last)}
+                    <div key={e.id} data-lib={e.id} className={`row ${on ? "on" : ""} ${hidden ? "dim" : ""}`} onClick={(ev) => goElement(e.id, e.first, e.last, ev)}
                       onMouseEnter={() => useStore.getState().setHover(e.id)} onMouseLeave={() => useStore.getState().setHover(null)}>
                       <KindIcon kind={e.kind} /><span className="name">{e.label}</span>
                       {n > 0 && <span className="meta">{n}</span>}

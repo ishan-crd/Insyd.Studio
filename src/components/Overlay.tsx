@@ -6,7 +6,7 @@ import { round } from "../lib/format";
 
 const SNAP = 8; // composition px
 type Drag =
-  | { kind: "move"; id: string; sx: number; sy: number; ox: number; oy: number; cx: number; cy: number }
+  | { kind: "move"; id: string; ids: string[]; base: Record<string, { x: number; y: number }>; sx: number; sy: number; ox: number; oy: number; cx: number; cy: number }
   | { kind: "scale"; id: string; cx: number; cy: number; d0: number; s0: number };
 
 // Selection/hover boxes over the Player. Hit-testing uses the DOM (elementsFromPoint), and only the
@@ -15,6 +15,7 @@ export const Overlay: React.FC<{ scale: number }> = ({ scale }) => {
   const elements = useElements();
   const def = useStore((s) => s.def)!;
   const selection = useStore((s) => s.selection);
+  const multi = useStore((s) => s.multi);
   const hover = useStore((s) => s.hover);
   const layout = useStore((s) => s.layout);
   const frame = usePlayback((s) => s.frame);
@@ -28,18 +29,25 @@ export const Overlay: React.FC<{ scale: number }> = ({ scale }) => {
 
   // measure hovered/selected after every paint-relevant change
   useEffect(() => {
-    const ids = [selId, hover].filter(Boolean) as string[];
+    const ids = Array.from(new Set([...multi, selId, hover].filter(Boolean))) as string[];
     const next: Record<string, Rect> = {};
     for (const id of ids) { const r = registry.measureId(id); if (r) next[id] = r; }
     setRects(next);
-  }, [selId, hover, frame, layout, elements, scale]);
+  }, [selId, multi, hover, frame, layout, elements, scale]);
 
   const origin = () => overlayEl.current!.getBoundingClientRect();
   const startMove = (e: React.PointerEvent, id: string) => {
     const r = registry.measureId(id); if (!r) return;
-    store().select({ type: "element", id }); store().begin();
+    // ⇧-click adds to the selection, ⌘-click toggles; a plain click on an unselected element selects only it
+    if (e.shiftKey || e.metaKey || e.ctrlKey) store().addToSelection(id, e.metaKey || e.ctrlKey);
+    else if (!store().selectedIds().includes(id)) store().select({ type: "element", id });
+    else useStore.setState({ selection: { type: "element", id } });
+    const ids = store().selectedIds();
+    if (!ids.includes(id)) return; // toggled off
+    store().begin();
     const t = store().transform(id);
-    const d: Drag = { kind: "move", id, sx: e.clientX, sy: e.clientY, ox: t.x, oy: t.y, cx: r.x + r.w / 2, cy: r.y + r.h / 2 };
+    const base = Object.fromEntries(ids.map((x) => { const tx = store().transform(x); return [x, { x: tx.x, y: tx.y }]; }));
+    const d: Drag = { kind: "move", id, ids, base, sx: e.clientX, sy: e.clientY, ox: t.x, oy: t.y, cx: r.x + r.w / 2, cy: r.y + r.h / 2 };
     dragRef.current = d; setDrag(d);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
@@ -73,7 +81,8 @@ export const Overlay: React.FC<{ scale: number }> = ({ scale }) => {
       if (Math.abs(ccx - def.width / 2) < SNAP) { nx += def.width / 2 - ccx; g.v = true; }
       if (Math.abs(ccy - def.height / 2) < SNAP) { ny += def.height / 2 - ccy; g.h = true; }
       setGuides(g);
-      store().updateElement(d.id, { x: round(nx, 1), y: round(ny, 1) }, false);
+      const ddx = nx - d.ox, ddy = ny - d.oy;
+      store().updateElements(Object.fromEntries(d.ids.map((x) => [x, { x: round(d.base[x].x + ddx, 1), y: round(d.base[x].y + ddy, 1) }])), false);
     } else {
       const o = origin();
       const px = (e.clientX - o.left) / scale, py = (e.clientY - o.top) / scale;
@@ -82,7 +91,8 @@ export const Overlay: React.FC<{ scale: number }> = ({ scale }) => {
   };
   const onUp = () => { if (!dragRef.current) return; dragRef.current = null; setDrag(null); setGuides({}); store().end(); };
 
-  const boxes = [selId, hover !== selId ? hover : null].filter(Boolean) as string[];
+  const selectedSet = new Set(multi.length ? multi : selId ? [selId] : []);
+  const boxes = Array.from(new Set([...selectedSet, hover && !selectedSet.has(hover) ? hover : null].filter(Boolean))) as string[];
   return (
     <div ref={overlayEl} className="overlay" style={{ cursor: drag ? "grabbing" : hover ? "grab" : "default" }}
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onPointerLeave={() => !dragRef.current && store().setHover(null)}
@@ -92,12 +102,13 @@ export const Overlay: React.FC<{ scale: number }> = ({ scale }) => {
       {boxes.map((id) => {
         const r = rects[id]; const en = registry.getElement(id);
         if (!r || !en) return null;
-        const sel = id === selId;
+        const sel = selectedSet.has(id);
+        const primary = id === selId;
         const t = store().transform(id);
         return (
           <div key={id} className={`box ${sel ? "selected" : "hover"} ${t.hidden ? "hidden-el" : ""}`} style={{ left: r.x * scale, top: r.y * scale, width: r.w * scale, height: r.h * scale, pointerEvents: "none" }}>
             <div className="tag">{en.label}<span className="k">{t.scale !== 1 ? `×${t.scale.toFixed(2)}` : `${Math.round(r.w)}×${Math.round(r.h)}`}</span></div>
-            {sel && ["nw", "ne", "sw", "se"].map((c) => <div key={c} className={`handle ${c}`} style={{ pointerEvents: "auto" }} onPointerDown={(e) => startScale(e, id)} />)}
+            {primary && selectedSet.size === 1 && ["nw", "ne", "sw", "se"].map((c) => <div key={c} className={`handle ${c}`} style={{ pointerEvents: "auto" }} onPointerDown={(e) => startScale(e, id)} />)}
           </div>
         );
       })}

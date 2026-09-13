@@ -38,6 +38,7 @@ const PropGroups: React.FC<{ props: PropEntry[]; title?: string }> = ({ props, t
 export const Inspector: React.FC = () => {
   const def = useStore((s) => s.def)!;
   const selection = useStore((s) => s.selection);
+  const multi = useStore((s) => s.multi);
   const layout = useStore((s) => s.layout);
   const scenes = useStore((s) => s.scenes());
   const scan = useStore((s) => s.scan);
@@ -59,8 +60,21 @@ export const Inspector: React.FC = () => {
     const upd = (patch: Partial<typeof t>, commit = true) => store().updateElement(id, patch, commit);
     const centerH = () => { const r = registry.measureId(id); if (r) upd({ x: Math.round((t.x + (def.width / 2 - (r.x + r.w / 2))) * 10) / 10 }); };
     const centerV = () => { const r = registry.measureId(id); if (r) upd({ y: Math.round((t.y + (def.height / 2 - (r.y + r.h / 2))) * 10) / 10 }); };
+    const group = multi.length > 1 ? multi : null;
     body = (
       <>
+        {group && (
+          <div style={{ margin: "8px 6px 0", padding: "8px 10px", borderRadius: 10, background: "var(--accent-soft)", border: "1px solid var(--accent)" }}>
+            <div style={{ fontWeight: 600, fontSize: 13 }}>{group.length} elements selected</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+              {group.map((gid) => {
+                const lbl = scan.elements.find((e) => e.id === gid)?.label ?? gid;
+                return <span key={gid} className="kbd" style={{ display: "inline-flex", alignItems: "center", gap: 4, cursor: "pointer", borderColor: gid === id ? "var(--accent)" : undefined }} title="Click to make primary · × to remove" onClick={() => useStore.setState({ selection: { type: "element", id: gid } })}>{lbl}<span onClick={(e) => { e.stopPropagation(); store().addToSelection(gid, true); }} style={{ opacity: 0.6 }}>×</span></span>;
+              })}
+            </div>
+            <div className="hint" style={{ padding: "6px 0 0" }}>Drag any of them on the canvas or the timeline to move the group. Arrow keys nudge all; ⌫ hides all. Fields below edit the primary only.</div>
+          </div>
+        )}
         <div style={{ padding: "10px 12px 2px", display: "flex", gap: 10, alignItems: "center" }}>
           <span style={{ color: "var(--text-2)" }}><KindIcon kind={kind} /></span>
           <div><div style={{ fontWeight: 600, fontSize: 14 }}>{live?.label ?? meta?.label ?? id}</div><div className="id">{id}{live ? "" : " · not on screen at this frame"}</div></div>

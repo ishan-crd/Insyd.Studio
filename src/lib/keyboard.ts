@@ -28,15 +28,14 @@ export const useKeyboard = () => {
         case "End": seek(s.duration() - 1); break;
         case "b": case "B": if (!meta) s.select({ type: "brand" }); break;
         case "Backspace": case "Delete":
-          if (sel) { e.preventDefault(); s.updateElement(sel, { hidden: !s.transform(sel).hidden }); }
+          if (sel) { e.preventDefault(); const hide = !s.transform(sel).hidden; s.updateElements(Object.fromEntries(s.selectedIds().map((id) => [id, { hidden: hide }]))); }
           break;
         case "ArrowLeft": case "ArrowRight": case "ArrowUp": case "ArrowDown": {
           e.preventDefault();
           const dir = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
           const vdir = e.key === "ArrowUp" ? -1 : e.key === "ArrowDown" ? 1 : 0;
           if (sel && !e.altKey) {
-            const t = s.transform(sel);
-            s.updateElement(sel, { x: t.x + dir * big, y: t.y + vdir * big });
+            s.updateElements(Object.fromEntries(s.selectedIds().map((id) => { const t = s.transform(id); return [id, { x: t.x + dir * big, y: t.y + vdir * big }]; })));
           } else if (dir !== 0) {
             seek(usePlayback.getState().frame + dir * big);
           }

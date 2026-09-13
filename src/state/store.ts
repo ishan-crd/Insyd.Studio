@@ -19,6 +19,8 @@ type State = {
   codeDefaults: Record<string, Partial<ElementTransform>>;
 
   selection: Selection;
+  /** every selected element id (includes the primary in `selection`); empty unless elements are selected */
+  multi: string[];
   hover: string | null;
   zoom: number | null;
   collapsed: Record<string, boolean>;
@@ -37,6 +39,9 @@ type State = {
   setIndex: (i: CodeIndex) => void;
   setCodeDefaults: (d: Record<string, Partial<ElementTransform>>) => void;
   select: (s: Selection) => void;
+  /** add (or with toggle=true, flip) an element in the multi-selection; it becomes the primary */
+  addToSelection: (id: string, toggle?: boolean) => void;
+  selectedIds: () => string[];
   setHover: (id: string | null) => void;
   setZoom: (z: number | null) => void;
   toggleCollapsed: (sceneId: string) => void;
@@ -45,6 +50,7 @@ type State = {
   end: () => void;
   setLayout: (l: Layout) => void;
   updateElement: (id: string, patch: Partial<ElementTransform>, commit?: boolean) => void;
+  updateElements: (patches: Record<string, Partial<ElementTransform>>, commit?: boolean) => void;
   resetElement: (id: string) => void;
   setCopy: (id: string, text: string, commit?: boolean) => void;
   setProp: (id: string, value: unknown, commit?: boolean) => void;
@@ -73,7 +79,7 @@ export const useStore = create<State>((set, get) => ({
   def: null,
   layout: emptyLayout(), saved: emptyLayout(),
   past: [], future: [], txn: null, index: null, codeDefaults: {},
-  selection: null, hover: null, zoom: null, collapsed: {},
+  selection: null, multi: [], hover: null, zoom: null, collapsed: {},
   scan: { status: "idle", progress: 0, elements: [] },
   toast: null, saving: false,
 
@@ -100,7 +106,18 @@ export const useStore = create<State>((set, get) => ({
   },
   setIndex: (index) => set({ index }),
   setCodeDefaults: (codeDefaults) => set({ codeDefaults }),
-  select: (selection) => set({ selection }),
+  select: (selection) => set({ selection, multi: selection?.type === "element" ? [selection.id] : [] }),
+  addToSelection: (id, toggle = false) => {
+    const { multi } = get();
+    if (toggle && multi.includes(id)) {
+      const next = multi.filter((x) => x !== id);
+      set({ multi: next, selection: next.length ? { type: "element", id: next[next.length - 1] } : null });
+      return;
+    }
+    const next = multi.includes(id) ? multi : [...multi, id];
+    set({ multi: next, selection: { type: "element", id } });
+  },
+  selectedIds: () => { const s = get(); return s.selection?.type === "element" ? (s.multi.length ? s.multi : [s.selection.id]) : []; },
   setHover: (hover) => set({ hover }),
   setZoom: (zoom) => set({ zoom }),
   toggleCollapsed: (id) => set((s) => ({ collapsed: { ...s.collapsed, [id]: !s.collapsed[id] } })),
@@ -117,6 +134,13 @@ export const useStore = create<State>((set, get) => ({
     const s = get(); if (commit) s.begin();
     const cur = s.layout.elements[id] ?? {};
     set({ layout: { ...s.layout, elements: { ...s.layout.elements, [id]: { ...cur, ...patch } } } });
+    if (commit) get().end();
+  },
+  updateElements: (patches, commit = true) => {
+    const s = get(); if (commit) s.begin();
+    const elements = { ...s.layout.elements };
+    for (const [id, patch] of Object.entries(patches)) elements[id] = { ...(elements[id] ?? {}), ...patch };
+    set({ layout: { ...s.layout, elements } });
     if (commit) get().end();
   },
   resetElement: (id) => {
