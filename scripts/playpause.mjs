@@ -34,12 +34,12 @@ await page.keyboard.press("Escape"); await page.mouse.click(1400, 600);
 // 6) play through a scene boundary and audio-heavy scene without stalling
 await page.evaluate(() => window.__insydPlayer.seekTo(400)); await wait(300);
 await playBtn.click(); await wait(3000); a = await state();
-check("Plays across the scene cut at f422 without stalling", a.playing && a.frame > 470, `f${a.frame}`);
+check("Plays across a scene cut without stalling", a.playing && a.frame > 470, `f${a.frame}`);
 await playBtn.click(); await wait(200);
 // 7) end of video: play from near the end, should stop at the end; play again restarts
-await page.evaluate(() => window.__insydPlayer.seekTo(1530)); await wait(300);
+await page.evaluate(() => window.__insydPlayer.seekTo(window.__insydStore.getState().duration() - 20)); await wait(300);
 await playBtn.click(); await wait(1500); a = await state();
-check("Stops at the end (Remotion rewinds to 0 when it ends)", !a.playing && (a.frame >= 1540 || a.frame === 0), JSON.stringify(a));
+check("Stops at the end (Remotion rewinds to 0 when it ends)", !a.playing && (a.frame >= (await page.evaluate(() => window.__insydStore.getState().duration())) - 10 || a.frame === 0), JSON.stringify(a));
 await playBtn.click(); await wait(1000); b = await state();
 check("Play at the end restarts from the beginning", b.playing && b.frame < 100 && b.frame > 0, JSON.stringify(b));
 await playBtn.click();
