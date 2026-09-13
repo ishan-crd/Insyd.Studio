@@ -10,11 +10,17 @@ import { Block, Chevron, Eye, EyeOff, Image, Text } from "../lib/icons";
 import { propsOf } from "../lib/owners";
 import { useAudioRows } from "./AudioTracks";
 import { openMenu, type MenuItem } from "./ContextMenu";
+import { snapDelta, clearSnap, useSnapUi } from "../lib/snap";
 import { copyElements, cutElements, pasteClipboard, duplicateElements, splitElements, deleteElements, setElementsLocked, trimElement, isElementLocked, getClipboard } from "../lib/clips";
 import { Copy, Clipboard as ClipIcon, Duplicate, Scissors, Trash, Lock, Unlock, EyeOff as EyeOffIcon } from "../lib/icons";
 
 const ROW = { ruler: 28, scene: 40, grp: 24, el: 28 };
 const KindIcon: React.FC<{ kind: string }> = ({ kind }) => (kind === "text" ? <Text /> : kind === "image" ? <Image /> : <Block />);
+
+const SnapLine: React.FC<{ ppf: number }> = ({ ppf }) => {
+  const line = useSnapUi((s) => s.line);
+  return line === null ? null : <div className="snapline" style={{ left: line * ppf }} />;
+};
 
 // Playhead is its own component so 30fps frame ticks don't re-render the tracks.
 const Playhead: React.FC<{ ppf: number; tracksRef: React.RefObject<HTMLDivElement> }> = ({ ppf, tracksRef }) => {
@@ -140,7 +146,12 @@ export const Timeline: React.FC = () => {
   };
   const dragScene = (e: React.PointerEvent, id: string, start: number) => {
     e.preventDefault(); store().begin();
-    drag(e, (dx) => store().setSceneDuration(id, start + dx / ppf, false), () => store().end());
+    const from = scenes.find((sc) => sc.id === id)?.from ?? 0;
+    drag(e, (dx, ev) => {
+      let d = dx / ppf;
+      d += snapDelta(from + start + d, from + start + d, new Set(), ppf, { disabled: ev.altKey, edges: ["start"] });
+      store().setSceneDuration(id, start + d, false);
+    }, () => { clearSnap(); store().end(); });
   };
   // Click selects; ⇧-click adds to the selection, ⌘-click toggles. Dragging a selected clip slides
   // every selected clip together; dragging an unselected clip selects just that one first.
@@ -152,11 +163,17 @@ export const Timeline: React.FC = () => {
     const ids = store().selectedIds().filter((x) => !isElementLocked(x));
     if (!ids.length) return;
     const base = Object.fromEntries(ids.map((x) => [x, store().transform(x).delay]));
+    const t0 = store().transform(id);
+    const len0 = (t0.trimOut ?? (last - first)) - t0.trimIn + 1;
+    const start0 = first + t0.delay + t0.trimIn;
+    const exclude = new Set(ids);
     store().begin();
-    drag(e, (dx) => {
-      const d = Math.round(dx / ppf);
+    drag(e, (dx, ev) => {
+      let d = Math.round(dx / ppf);
+      d += snapDelta(start0 + d, start0 + d + len0, exclude, ppf, { disabled: ev.altKey });
       store().updateElements(Object.fromEntries(ids.map((x) => [x, { delay: base[x] + d }])), false);
     }, (moved) => {
+      clearSnap();
       store().end();
       if (!additive) useStore.setState({ selection: { type: "element", id } });
       const t = store().transform(id); const a = first + t.delay, b = last + t.delay; const f = usePlayback.getState().frame;
@@ -201,7 +218,13 @@ export const Timeline: React.FC = () => {
     e.stopPropagation();
     if (!store().selectedIds().includes(id)) store().select({ type: "element", id });
     const base = store().transform(id); store().begin();
-    drag(e, (dx) => trimElement(id, base, edge, Math.round(dx / ppf), false), () => store().end());
+    const info = allElements.find((x) => x.id === id)!;
+    const s0 = info.first + base.delay + base.trimIn, e0 = info.first + base.delay + (base.trimOut ?? info.last - info.first);
+    drag(e, (dx, ev) => {
+      let d = Math.round(dx / ppf);
+      d += edge === "l" ? snapDelta(s0 + d, s0 + d, new Set([id]), ppf, { disabled: ev.altKey, edges: ["start"] }) : snapDelta(e0 + d, e0 + d, new Set([id]), ppf, { disabled: ev.altKey, edges: ["start"] });
+      trimElement(id, base, edge, d, false);
+    }, () => { clearSnap(); store().end(); });
   };
 
   const rows: React.ReactNode[] = [];
@@ -309,6 +332,7 @@ export const Timeline: React.FC = () => {
             {rows}
             {audio.rows}
             {marquee && <div className="marquee" style={{ left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h }} />}
+            <SnapLine ppf={ppf} />
             <Playhead ppf={ppf} tracksRef={tracksRef} />
           </div>
         </div>

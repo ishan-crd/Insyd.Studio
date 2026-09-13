@@ -8,6 +8,7 @@ import { api } from "../lib/api";
 import { Chevron, Lock, Music, Plus, Upload, Waveform as WaveIcon, Copy, Clipboard as ClipIcon, Duplicate, Scissors, Trash, Mute, Unlock } from "../lib/icons";
 import { setCurrentSoundClips, trimSound, copySounds, cutSounds, pasteSounds, duplicateSounds, splitSounds, deleteSounds, setSoundsLocked, getClipboard, isSoundLocked } from "../lib/clips";
 import { openMenu, type MenuItem } from "./ContextMenu";
+import { snapDelta, clearSnap } from "../lib/snap";
 
 export const ROW_AUDIO = 30;
 export const ROW_MUSIC = 40;
@@ -116,7 +117,12 @@ export const SoundClipView: React.FC<{ c: SoundClip; ppf: number; on: boolean; o
     if (!selectedOf("sound").includes(c.id)) store().select({ type: "sound", id: c.id });
     store().begin();
     const snapshot = { ...c };
-    drag(e, (dx) => trimSound(snapshot, edge, Math.round(dx / ppf), false), () => store().end());
+    drag(e, (dx, ev) => {
+      let d = Math.round(dx / ppf);
+      const edgeF = edge === "l" ? c.start : c.start + c.frames;
+      d += snapDelta(edgeF + d, edgeF + d, new Set([c.id]), ppf, { disabled: ev.altKey, edges: ["start"] });
+      trimSound(snapshot, edge, d, false);
+    }, () => { clearSnap(); store().end(); });
   };
   const onCtx = (e: React.MouseEvent) => {
     if (!selectedOf("sound").includes(c.id)) store().select({ type: "sound", id: c.id });
@@ -185,13 +191,16 @@ export const useAudioRows = (
     const ids = selectedOf("sound").filter((id) => !isSoundLocked(id));
     if (!ids.length) return;
     const base = Object.fromEntries(clips.filter((x) => ids.includes(x.id)).map((x) => [x.id, x]));
+    const exclude = new Set(ids);
     store().begin();
-    drag(e, (dx) => {
-      const d = Math.round(dx / ppf);
+    drag(e, (dx, ev) => {
+      let d = Math.round(dx / ppf);
+      d += snapDelta(c.start + d, c.start + c.frames + d, exclude, ppf, { disabled: ev.altKey });
       const patches: Record<string, any> = {};
       for (const id of ids) { const b = base[id]; if (!b) continue; patches[id] = b.added ? { at: Math.max(0, b.natural + d) } : { shift: b.shift + d }; }
       store().setSounds(patches, false);
     }, (moved) => {
+      clearSnap();
       store().end();
       if (!additive) useStore.setState({ selection: { type: "sound", id: c.id } });
       if (moved) { const cur = store().layout.sounds[c.id]; seek(c.added ? (cur?.at ?? c.natural) : c.natural + (cur?.shift ?? c.shift)); }

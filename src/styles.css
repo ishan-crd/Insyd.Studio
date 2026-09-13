@@ -257,3 +257,5 @@ input[type="number"] { font-family: var(--mono); font-size: 12px; }
 .tname:hover .tlock, .tname .tlock.on { opacity: 1; }
 .tname .tlock.on { color: var(--warn); }
 .tname .tlock svg { width: 12px; height: 12px; }
+
+.snapline { position: absolute; top: 0; bottom: 0; width: 1px; background: #ff4fa3; z-index: 5; pointer-events: none; box-shadow: 0 0 0 1px rgba(255,79,163,0.25); }

@@ -5,11 +5,12 @@ import { usePlayback } from "../state/playback";
 import { round } from "../lib/format";
 import { isElementLocked, copyElements, cutElements, pasteClipboard, duplicateElements, splitElements, deleteElements, setElementsLocked, getClipboard } from "../lib/clips";
 import { openMenu } from "./ContextMenu";
+import { snapRect, clearCanvasGuides, useCanvasGuides } from "../lib/snap";
 import { Copy, Clipboard as ClipIcon, Duplicate, Scissors, Trash, Lock, Unlock, EyeOff } from "../lib/icons";
 
 const SNAP = 8; // composition px
 type Drag =
-  | { kind: "move"; id: string; ids: string[]; base: Record<string, { x: number; y: number }>; sx: number; sy: number; ox: number; oy: number; cx: number; cy: number }
+  | { kind: "move"; id: string; ids: string[]; base: Record<string, { x: number; y: number }>; sx: number; sy: number; ox: number; oy: number; cx: number; cy: number; rect: Rect }
   | { kind: "scale"; id: string; cx: number; cy: number; d0: number; s0: number };
 
 // Selection/hover boxes over the Player. Hit-testing uses the DOM (elementsFromPoint), and only the
@@ -24,7 +25,7 @@ export const Overlay: React.FC<{ scale: number }> = ({ scale }) => {
   const frame = usePlayback((s) => s.frame);
   const [rects, setRects] = useState<Record<string, Rect>>({});
   const [drag, setDrag] = useState<Drag | null>(null);
-  const [guides, setGuides] = useState<{ v?: boolean; h?: boolean }>({});
+  const canvasGuides = useCanvasGuides();
   const dragRef = useRef<Drag | null>(null);
   const overlayEl = useRef<HTMLDivElement>(null);
   const store = useStore.getState;
@@ -50,7 +51,7 @@ export const Overlay: React.FC<{ scale: number }> = ({ scale }) => {
     store().begin();
     const t = store().transform(id);
     const base = Object.fromEntries(ids.map((x) => { const tx = store().transform(x); return [x, { x: tx.x, y: tx.y }]; }));
-    const d: Drag = { kind: "move", id, ids, base, sx: e.clientX, sy: e.clientY, ox: t.x, oy: t.y, cx: r.x + r.w / 2, cy: r.y + r.h / 2 };
+    const d: Drag = { kind: "move", id, ids, base, sx: e.clientX, sy: e.clientY, ox: t.x, oy: t.y, cx: r.x + r.w / 2, cy: r.y + r.h / 2, rect: r };
     dragRef.current = d; setDrag(d);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
@@ -79,11 +80,11 @@ export const Overlay: React.FC<{ scale: number }> = ({ scale }) => {
       let dx = (e.clientX - d.sx) / scale, dy = (e.clientY - d.sy) / scale;
       if (e.shiftKey) { if (Math.abs(dx) > Math.abs(dy)) dy = 0; else dx = 0; }
       let nx = d.ox + dx, ny = d.oy + dy;
-      const ccx = d.cx + (nx - d.ox), ccy = d.cy + (ny - d.oy);
-      const g: { v?: boolean; h?: boolean } = {};
-      if (Math.abs(ccx - def.width / 2) < SNAP) { nx += def.width / 2 - ccx; g.v = true; }
-      if (Math.abs(ccy - def.height / 2) < SNAP) { ny += def.height / 2 - ccy; g.h = true; }
-      setGuides(g);
+      // snap the dragged element's edges/centre to the canvas centre and to other elements (⌥ bypasses)
+      const r0 = d.rect;
+      const proposed = { x: r0.x + (nx - d.ox), y: r0.y + (ny - d.oy), w: r0.w, h: r0.h };
+      const sn = snapRect(proposed, new Set(d.ids), def, e.altKey, SNAP);
+      nx += sn.dx; ny += sn.dy;
       const ddx = nx - d.ox, ddy = ny - d.oy;
       store().updateElements(Object.fromEntries(d.ids.map((x) => [x, { x: round(d.base[x].x + ddx, 1), y: round(d.base[x].y + ddy, 1) }])), false);
     } else {
@@ -92,7 +93,7 @@ export const Overlay: React.FC<{ scale: number }> = ({ scale }) => {
       store().updateElement(d.id, { scale: round(Math.max(0.05, d.s0 * (Math.hypot(px - d.cx, py - d.cy) / d.d0)), 3) }, false);
     }
   };
-  const onUp = () => { if (!dragRef.current) return; dragRef.current = null; setDrag(null); setGuides({}); store().end(); };
+  const onUp = () => { if (!dragRef.current) return; dragRef.current = null; setDrag(null); clearCanvasGuides(); store().end(); };
 
   const selectedSet = new Set(multi.length ? multi : selId ? [selId] : []);
   const boxes = Array.from(new Set([...selectedSet, hover && !selectedSet.has(hover) ? hover : null].filter(Boolean))) as string[];
@@ -118,8 +119,8 @@ export const Overlay: React.FC<{ scale: number }> = ({ scale }) => {
         ]);
       }}
       onDoubleClick={(e) => { const id = registry.hitTest(e.clientX, e.clientY); const en = id && registry.getElement(id); if (en && en.kind === "text") document.getElementById("insp-text")?.focus(); }}>
-      {guides.v && <div className="guide v" style={{ left: (def.width / 2) * scale }} />}
-      {guides.h && <div className="guide h" style={{ top: (def.height / 2) * scale }} />}
+      {canvasGuides.v !== null && <div className="guide v" style={{ left: canvasGuides.v * scale }} />}
+      {canvasGuides.h !== null && <div className="guide h" style={{ top: canvasGuides.h * scale }} />}
       {boxes.map((id) => {
         const r = rects[id]; const en = registry.getElement(id);
         if (!r || !en) return null;
