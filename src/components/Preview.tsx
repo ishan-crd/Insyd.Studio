@@ -47,7 +47,9 @@ const Transport: React.FC = () => {
   );
 };
 
-export const Preview: React.FC = () => {
+/** The player with its selection overlay, fitted into whatever box it is given. Shared by the desktop
+ *  preview and the phone layout (which gives it a fixed-aspect card and no padding). */
+export const Stage: React.FC<{ pad?: number; className?: string; style?: React.CSSProperties }> = ({ pad = 44, className = "", style }) => {
   const def = useStore((s) => s.def)!;
   const layout = useStore((s) => s.layout);
   const duration = useStore((s) => s.duration());
@@ -58,13 +60,13 @@ export const Preview: React.FC = () => {
   useEffect(() => {
     const el = stageRef.current!;
     const ro = new ResizeObserver(() => {
-      const pad = 44, aw = el.clientWidth - pad, ah = el.clientHeight - pad, r = def.width / def.height;
+      const aw = el.clientWidth - pad, ah = el.clientHeight - pad, r = def.width / def.height;
       let w = aw, h = w / r; if (h > ah) { h = ah; w = h * r; }
       setSize({ w: Math.floor(w), h: Math.floor(h) });
     });
     ro.observe(el);
     return () => ro.disconnect();
-  }, [def]);
+  }, [def, pad]);
 
   const Host = useMemo(() => {
     const Comp = def.component;
@@ -91,8 +93,8 @@ export const Preview: React.FC = () => {
   }, []);
 
   return (
-    <div className="preview">
-      <div className="stage" ref={stageRef}>
+    <>
+      <div className={`stage ${className}`} style={style} ref={stageRef}>
         <div className="canvas" style={{ width: size.w, height: size.h }}>
           <div className="player">
             <Player ref={playerRef} component={Host} inputProps={{ layout }} durationInFrames={Math.max(1, duration)}
@@ -111,7 +113,13 @@ export const Preview: React.FC = () => {
             controls={false} clickToPlay={false} spaceKeyToPlayOrPause={false} acknowledgeRemotionLicense numberOfSharedAudioTags={0} initiallyMuted />
         </div>
       )}
-      <Transport />
-    </div>
+    </>
   );
 };
+
+export const Preview: React.FC = () => (
+  <div className="preview">
+    <Stage />
+    <Transport />
+  </div>
+);

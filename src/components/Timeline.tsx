@@ -12,6 +12,7 @@ import { useAudioRows } from "./AudioTracks";
 import { openMenu, type MenuItem } from "./ContextMenu";
 import { snapDelta, clearSnap, useSnapUi } from "../lib/snap";
 import { useThumbs } from "../lib/thumbs";
+import { useMobile } from "../lib/mobile";
 import { copyElements, cutElements, pasteClipboard, duplicateElements, splitElements, deleteElements, setElementsLocked, trimElement, isElementLocked, getClipboard, duplicateSounds, splitSounds, setSoundsLocked, isSoundLocked } from "../lib/clips";
 import { Copy, Clipboard as ClipIcon, Duplicate, Scissors, Trash, Lock, Unlock, EyeOff as EyeOffIcon } from "../lib/icons";
 
@@ -63,6 +64,7 @@ export const Timeline: React.FC = () => {
   const allElements = useStore((s) => s.allElements());
   const collapsed = useStore((s) => s.collapsed);
   const zoomMul = useStore((s) => s.zoom) ?? 1;
+  const mobile = useMobile();
   const props = useProps();
   const tracksRef = useRef<HTMLDivElement>(null);
   const namesRef = useRef<HTMLDivElement>(null);
@@ -76,7 +78,10 @@ export const Timeline: React.FC = () => {
     return () => ro.disconnect();
   }, []);
 
-  const ppf = ((width - 48) / Math.max(1, duration)) * zoomMul;
+  // On a phone "fit" would pack the whole video into ~350px, so the base scale keeps the track at
+  // least ~920px wide and the timeline scrolls sideways (as in the mobile design).
+  const base = mobile ? Math.max(1, 920 / Math.max(1, width)) : 1;
+  const ppf = ((width - 48) / Math.max(1, duration)) * zoomMul * base;
   const innerW = duration * ppf + 48;
 
   useEffect(() => {
@@ -124,9 +129,17 @@ export const Timeline: React.FC = () => {
   };
   const trackDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
+    const additive = e.shiftKey || e.metaKey || e.ctrlKey;
+    if (e.pointerType === "touch") {
+      // a finger on empty space: a tap seeks (and deselects), a swipe is left to the browser to scroll
+      const x = e.clientX, y = e.clientY;
+      const done = () => { window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", done); };
+      const up = (ev: PointerEvent) => { done(); if (Math.hypot(ev.clientX - x, ev.clientY - y) < 8) { seek(frameAt(x)); if (!additive) store().select(null); } };
+      window.addEventListener("pointerup", up); window.addEventListener("pointercancel", done);
+      return;
+    }
     e.preventDefault(); // no native text/drag selection
     const start = contentPoint(e.clientX, e.clientY);
-    const additive = e.shiftKey || e.metaKey || e.ctrlKey;
     const cur = store().selection;
     const base = additive && (cur?.type === "element" || cur?.type === "sound") ? { type: cur.type, ids: store().selectedIds() } : null;
     let moved = false;
@@ -152,8 +165,8 @@ export const Timeline: React.FC = () => {
     e.stopPropagation();
     const x0 = e.clientX; let moved = false;
     const move = (ev: PointerEvent) => { const dx = ev.clientX - x0; if (Math.abs(dx) > 1) moved = true; onMove(dx, ev); };
-    const up = () => { onUp?.(moved); window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
-    window.addEventListener("pointermove", move); window.addEventListener("pointerup", up);
+    const up = () => { onUp?.(moved); window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", up); };
+    window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", up);
   };
   const scrub = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
@@ -258,7 +271,7 @@ export const Timeline: React.FC = () => {
         <span className="cnt">{els.length}</span>
       </div></div>,
     );
-    rows.push(<div key={"g" + sc.id} className="trow grp" onPointerDown={trackDown} onContextMenu={(e) => openMenu(e, elementMenu([]))} />);
+    if (!mobile) rows.push(<div key={"g" + sc.id} className="trow grp" onPointerDown={trackDown} onContextMenu={(e) => openMenu(e, elementMenu([]))} />);
     if (!open) return;
     els.forEach((e) => {
       const t = { delay: 0, hidden: false, trimIn: 0, trimOut: null as number | null, locked: false, speed: 1, ...(codeDefaults[e.id] ?? {}), ...(layout.elements[e.id] ?? {}) };

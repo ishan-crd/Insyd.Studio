@@ -453,3 +453,168 @@ input[type="range"]:focus { box-shadow: none; }
 .step .snippet { margin: 0; }
 .or { display: flex; align-items: center; gap: 12px; margin: 2px 0 16px; color: var(--ink-3); font-size: 11px; }
 .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+
+/* ======================================================================================
+   Phone layout ("Studio Editor Mobile") — below 760px the editor is one column: preview,
+   transport, a sideways-scrolling timeline and a panel behind a bottom dock. Same tokens,
+   larger touch targets (36–44px), sheets instead of centred dialogs.
+   ====================================================================================== */
+@media (max-width: 760px) {
+  html, body, #root { height: 100dvh; }
+  body { font-size: 14px; }
+  /* short viewports (Safari with its bars showing) give a little of the preview and timeline back to the panel */
+  .app.mobile { min-width: 0; display: flex; flex-direction: column; height: 100dvh; grid-template-areas: none; --tl-h: clamp(112px, 18dvh, 168px); }
+  .app.mobile > * { flex: none; }
+
+  /* top bar */
+  .m-top { display: flex; align-items: center; gap: 6px; height: 52px; padding: 0 8px 0 4px; background: var(--panel); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top); box-sizing: content-box; }
+  .m-ib { width: 40px; height: 40px; display: grid; place-items: center; background: transparent; border: 0; border-radius: 8px; cursor: pointer; color: var(--ink); padding: 0; flex: none; }
+  .m-ib svg { width: 18px; height: 18px; }
+  .m-ib:active { background: var(--hover); }
+  .m-ib:disabled { color: var(--ink-disabled); }
+  .m-title { flex: 1; min-width: 0; line-height: 1.2; }
+  .m-title .name { font-size: 14px; font-weight: 600; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .m-title .meta { font-size: 11px; color: var(--ink-3); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .m-title .meta b { font-weight: 400; color: var(--ink-2); }
+  .m-title .meta b.ok { color: var(--ink-3); }
+  .btn.m-export { height: 36px; padding: 0 14px; border-radius: 8px; font-size: 13px; font-weight: 600; flex: none; }
+  .btn.m-export svg { width: 13px; height: 13px; }
+
+  /* preview card */
+  .m-preview { padding: 12px 12px 0; }
+  .stage.m { width: 100%; max-height: 28dvh; padding: 0; display: grid; place-items: center; }
+  .app.mobile .canvas { border-radius: 6px; }
+  .app.mobile .canvas .player { border-radius: 6px; }
+  .app.mobile .canvas-tools { bottom: 8px; border-radius: 8px; }
+  .app.mobile .overlay, .app.mobile .handle { touch-action: none; }
+  .app.mobile .box .tag { top: -22px; }
+
+  /* transport */
+  .m-transport { display: flex; align-items: center; gap: 4px; height: 48px; padding: 0 8px; }
+  .m-transport .m-ib { width: 36px; height: 36px; }
+  .m-transport .m-ib svg { width: 16px; height: 16px; }
+  .m-play { width: 40px; height: 40px; margin: 0 4px; display: grid; place-items: center; background: var(--primary); color: var(--on-primary); border: 0; border-radius: 10px; cursor: pointer; padding: 0; flex: none; }
+  .m-play:active { background: var(--primary-hover); }
+  .m-play svg { width: 15px; height: 15px; }
+  .m-transport .tc { font-size: 13px; font-weight: 500; color: var(--ink); min-width: 96px; text-align: right; padding-right: 4px; white-space: nowrap; }
+  .m-transport .tc span { color: var(--ink-4); font-weight: 400; }
+
+  /* timeline: no header, no name column; ruler + scenes + lanes scroll sideways */
+  .app.mobile .tl { height: var(--tl-h); grid-template-rows: 1fr; border-bottom: 1px solid var(--line); }
+  .app.mobile .tl-head { display: none; }
+  .app.mobile .tl-body { grid-template-columns: 1fr; }
+  .app.mobile .tl-names { display: none; }
+  .app.mobile .tl-tracks { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .app.mobile .tl-tracks::-webkit-scrollbar { display: none; }
+  .app.mobile .trow.ruler { height: 22px; touch-action: none; }
+  .app.mobile .tick span { top: 5px; }
+  .app.mobile .trow.scene { height: 46px; top: 22px; }
+  .app.mobile .sblock { top: 5px; bottom: 5px; font-size: 12px; padding-left: 9px; }
+  .app.mobile .sblock .dur { font-size: 11px; }
+  .app.mobile .trow { height: 26px; }
+  .app.mobile .clip, .app.mobile .aclip { top: 3px; bottom: 3px; font-size: 12px; touch-action: none; }
+  .app.mobile .clip .trim, .app.mobile .aclip .trim { width: 14px; }
+  .app.mobile .sblock .edge { width: 16px; touch-action: none; }
+  /* the 3px entrance bar would catch fingers meant for the clip — re-time it from the Animation tab instead */
+  .app.mobile .clip .anim { pointer-events: none; }
+  .app.mobile .aclip .alabel { font-size: 12px; }
+  .app.mobile .trow.grp { height: 26px; }
+
+  /* the panel behind the dock */
+  .m-panel { flex: 1 1 auto !important; min-height: 0; display: flex; flex-direction: column; background: var(--panel); }
+  .m-fill { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .app.mobile .lib, .app.mobile .insp { flex: 1; min-height: 0; border: 0; }
+  .app.mobile .panel-body { -webkit-overflow-scrolling: touch; padding: 0 8px calc(12px + env(safe-area-inset-bottom)); }
+  .app.mobile .insp .panel-body { padding: 0 0 env(safe-area-inset-bottom); }
+  .app.mobile .panel-foot { display: none; }
+  .app.mobile .panel-tabs { padding: 10px 12px 6px; }
+  .app.mobile .tabs { border-radius: 8px; }
+  .app.mobile .tabs button { height: 32px; font-size: 13px; border-radius: 6px; }
+  .app.mobile .row { height: 40px; font-size: 14px; padding: 0 10px; border-radius: 8px; gap: 10px; color: var(--ink-2); }
+  .app.mobile .row .kind { min-width: 24px; height: 20px; }
+  .app.mobile .row .meta { font-size: 12px; }
+  .app.mobile .row .eye { width: 32px; height: 32px; color: var(--ink-disabled); }
+  .app.mobile .row.on .eye { color: var(--ink-2); }
+  .app.mobile .group { height: 40px; font-size: 14px; padding: 0 10px; border-radius: 8px; gap: 10px; }
+  .app.mobile .group .meta { font-size: 12px; }
+  .app.mobile .sub { padding-left: 22px; }
+  .app.mobile .swatches { grid-template-columns: 1fr 1fr 1fr; }
+  .app.mobile .swatch { padding: 8px; border-radius: 8px; }
+  .app.mobile .swatch i { width: 24px; height: 24px; border-radius: 5px; }
+  .app.mobile .swatch b { font-size: 12px; }
+  .app.mobile .token { padding: 10px 12px; border-radius: 8px; font-size: 13px; }
+  .app.mobile .lib-title { margin: 12px 4px 8px; }
+
+  /* inspector: 36px fields, 2-col grids as designed */
+  .app.mobile input, .app.mobile select { height: 36px; border-radius: 8px; padding: 0 10px; font-size: 13px; }
+  .app.mobile textarea { border-radius: 8px; font-size: 14px; }
+  .app.mobile .field .unit input { padding-right: 28px; }
+  .app.mobile .field .unit i { right: 10px; }
+  .app.mobile .field .slider { grid-template-columns: 1fr 72px; }
+  .app.mobile .insp-head { padding: 10px 12px 12px; }
+  .app.mobile .insp-head .badge { width: 28px; height: 28px; border-radius: 6px; }
+  .app.mobile .insp-head .title { font-size: 14px; }
+  .app.mobile .insp .btn.ghost.icon { width: 32px !important; height: 32px !important; }
+  .app.mobile .sect { padding: 12px 12px 14px; }
+  .app.mobile .section { padding-left: 12px; padding-right: 12px; }
+  .app.mobile .field { padding-left: 12px; padding-right: 12px; }
+  .app.mobile .sect .field, .app.mobile .grid2 .field { padding: 0; }
+  .app.mobile .hint { padding-left: 12px; padding-right: 12px; font-size: 12px; }
+  .app.mobile .sect .hint { padding: 6px 0 0; }
+  .app.mobile .btnrow { padding-left: 12px; padding-right: 12px; }
+  .app.mobile .sect .btnrow { padding: 8px 0 0; }
+  .app.mobile .btn { height: 36px; border-radius: 8px; }
+  .app.mobile .btn.sm { height: 32px; font-size: 13px; }
+  .app.mobile .btn.icon { width: 36px; }
+  .app.mobile .btn.sm.icon { width: 32px; }
+  .app.mobile .switch input { width: 40px; height: 24px; }
+  .app.mobile .switch input::after { width: 18px; height: 18px; }
+  .app.mobile .switch input:checked::after { transform: translateX(16px); }
+  .app.mobile .mute-btn { height: 40px; border-radius: 8px; font-size: 13px; }
+  .app.mobile .status-row { font-size: 13px; padding: 6px 0; }
+  .app.mobile .empty { font-size: 13px; }
+  .app.mobile input[type="range"] { height: 24px; }
+  .app.mobile input[type="range"]::-webkit-slider-thumb { width: 16px; height: 16px; margin-top: -6px; }
+
+  /* dock */
+  .m-dock { display: grid; grid-template-columns: repeat(4, 1fr); height: calc(60px + env(safe-area-inset-bottom)); padding: 4px 8px env(safe-area-inset-bottom); background: var(--panel); border-top: 1px solid var(--line); }
+  .m-dock-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: transparent; border: 0; border-radius: 8px; cursor: pointer; font-size: 11px; font-weight: 500; color: var(--ink-4); padding: 0; }
+  .m-dock-btn svg { width: 20px; height: 20px; stroke-width: 1.6; }
+  .m-dock-btn.on { color: var(--ink); }
+  .m-dock-btn:active { background: var(--hover); }
+
+  /* sheets: every dialog slides up from the bottom */
+  .modal-bg { display: flex; align-items: flex-end; justify-content: stretch; }
+  .modal { width: 100% !important; max-width: 100%; max-height: 88dvh !important; overflow: auto; border: 0; border-radius: 16px 16px 0 0; padding: 8px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 24px -8px rgba(20,20,19,.24), 0 -1px 0 rgba(20,20,19,.06); }
+  .modal::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 4px; background: var(--field-border); margin: 0 auto 16px; }
+  .modal h2 { font-size: 17px; }
+  .modal p { font-size: 13px; }
+  .modal .actions .btn { height: 44px; border-radius: 10px; flex: 1; justify-content: center; }
+  .sc-grid { grid-template-columns: 1fr; }
+  .status-row .label { width: 104px; }
+  .m-sheet { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .m-group { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; padding: 14px 4px 4px; }
+  .m-group span { text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .m-row { display: flex; align-items: center; gap: 12px; width: 100%; height: 48px; padding: 0 4px; background: transparent; border: 0; border-bottom: 1px solid var(--line-soft); color: var(--ink); font-size: 14px; cursor: pointer; text-align: left; }
+  .m-row:last-child { border-bottom: 0; }
+  .m-row:active { background: var(--hover); }
+  .m-row:disabled { color: var(--ink-disabled); }
+  .m-row .ico { width: 20px; display: grid; place-items: center; color: var(--ink-3); }
+  .m-row:disabled .ico { color: var(--ink-disabled); }
+  .m-row .ico svg { width: 16px; height: 16px; }
+  .m-row .lbl { flex: 1; }
+  .m-row .det { font-size: 12px; color: var(--ink-3); }
+  .m-row.danger:not(:disabled) { color: var(--danger); }
+  .m-row.danger:not(:disabled) .ico { color: var(--danger); }
+  .m-zoom { display: flex; gap: 8px; padding: 6px 0 4px; }
+  .m-zoom .btn { flex: 1; justify-content: center; height: 40px; }
+
+  /* toast above the dock; project screen as a full page */
+  .toast { bottom: calc(76px + env(safe-area-inset-bottom)); width: max-content; max-width: calc(100vw - 32px); text-align: center; }
+  .welcome { place-items: start stretch; padding: 12px; overflow: auto; }
+  .welcome .card { width: 100%; }
+  .welcome .pathbox { flex-direction: column; }
+  .welcome .pathbox input { height: 40px; }
+  .ctx { min-width: 220px; }
+  .ctx-item { height: 40px; font-size: 14px; }
+}

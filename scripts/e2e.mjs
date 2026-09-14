@@ -3,7 +3,8 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
 
-const PROJECT = process.env.PROJECT || "/Users/ishangupta/superconductor/projects/thumb-mcp/video";
+import { PROJECT, snapshotProject, finish } from "./lib/project.mjs";
+snapshotProject();
 const BASE = "http://localhost:4321/";
 const results = []; let failed = 0;
 const check = (name, ok, info = "") => { results.push([ok ? "PASS" : "FAIL", name, info]); if (!ok) failed++; console.log(`${ok ? "✓" : "✗"} ${name}${info ? "  — " + info : ""}`); };
@@ -154,4 +155,4 @@ check("after reload: composition renders the saved values from code", fs2 === "1
 check("no page errors", errors.length === 0, errors.slice(0, 3).join(" | "));
 await browser.close();
 console.log(`\n${results.length - failed}/${results.length} passed`);
-process.exit(failed ? 1 : 0);
+await finish(failed ? 1 : 0);

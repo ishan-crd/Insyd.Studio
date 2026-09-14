@@ -3,7 +3,8 @@
 import { chromium } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
-const PROJECT = process.env.PROJECT || "/Users/ishangupta/Desktop/thumb-launch-wannabe";
+import { PROJECT, snapshotProject } from "./lib/project.mjs";
+snapshotProject();
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined });
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const errors = []; page.on("pageerror", (e) => errors.push(e.message));
@@ -94,3 +95,4 @@ fs.writeFileSync(path.join(PROJECT, "layout.json"), layoutBefore);
 check("no page errors", errors.length === 0, errors.slice(0, 2).join(" | "));
 console.log(`${results.filter(Boolean).length}/${results.length} passed`);
 await browser.close();
+await new Promise((r) => setTimeout(r, 1500)); // let a late save land before the snapshot is restored

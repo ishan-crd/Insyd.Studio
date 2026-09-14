@@ -5,7 +5,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import fs from "node:fs";
 import path from "node:path";
-const PROJECT = process.env.PROJECT || "/Users/ishangupta/Desktop/thumb-launch-wannabe";
+import { PROJECT, snapshotProject, finish } from "./lib/project.mjs";
+snapshotProject();
 const results = []; const check = (n, ok, info = "") => { results.push(ok); console.log(`${ok ? "✓" : "✗"} ${n}${info ? " — " + info : ""}`); };
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined });
@@ -81,4 +82,4 @@ check("whoosh volumes written into the scenes", /name="whoosh"[^>]*volume=\{0\.1
 check("no page errors", errors.length === 0, errors.slice(0, 2).join(" | "));
 console.log(`${results.filter(Boolean).length}/${results.length} passed`);
 await client.close(); await browser.close();
-process.exit(results.every(Boolean) ? 0 : 1);
+await finish(results.every(Boolean) ? 0 : 1);

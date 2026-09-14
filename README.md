@@ -23,6 +23,13 @@ left, the canvas with a floating size/zoom chip and a transport bar in the middl
 Animation, or Sound / Scene / Brand / Group) on the right, and the timeline below with Split · Duplicate · Lock,
 zoom and Fit.
 
+**On a phone** (any window under 760px wide) the same editor becomes one column: the canvas on top, a transport
+row (undo · redo · previous scene · play · next scene · timecode), the timeline scrolling sideways under your
+finger, and a panel switched by a bottom dock — Layers (Scenes · Elements · Sounds), Inspect, Brand, and More,
+where Save, Open in Claude Code, Copy prompt, Rescan, Split / Duplicate / Lock / Hide / Delete and timeline zoom
+live. Dialogs open as bottom sheets. To use it from a phone, start Studio listening on your network —
+`INSYD_HOST=0.0.0.0 npm start` — and open `http://<your-mac>.local:4321` on the same Wi-Fi.
+
 ## What you can do
 
 | | |
@@ -106,7 +113,10 @@ node scripts/e2e.mjs         edit → save → source diff → reload (33 checks
 node scripts/mcp.mjs         a real MCP client drives the editor (24)
 node scripts/claude.mjs      Claude Code hand-off + live reload of external edits (12)
 node scripts/speed.mjs         element time remap + sound playback rate, saved to code (17)
+node scripts/mobile.mjs       the phone layout at 390px with a touch screen (39)
 node scripts/playpause.mjs · multiselect · marquee · groupedit · clips · elclips · audio · snap · shortcuts · thumbs · preview
 node scripts/perf.mjs        main-thread ms/frame during playback
 ```
-Tests use Playwright's Chromium (`CHROME=/path/to/chromium` to override).
+Tests use Playwright's Chromium (`CHROME=/path/to/chromium` to override). They run against whatever project Studio
+has open (`PROJECT=/dir` to override); the suites with hard-coded frames expect the `thumb-mcp-video` cut. Suites that
+save snapshot the project's `src/` and `layout.json` first and put them back on exit.

@@ -2,7 +2,8 @@
 import { chromium } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
-const PROJECT = process.env.PROJECT || "/Users/ishangupta/superconductor/projects/thumb-mcp/video";
+import { PROJECT, snapshotProject, finish } from "./lib/project.mjs";
+snapshotProject();
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined });
 const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
 await ctx.addInitScript(() => { try { for (const k of Object.keys(localStorage)) if (k.startsWith("insyd:")) localStorage.removeItem(k); } catch {} });
@@ -107,4 +108,4 @@ check("after reload the copy still renders (from layout.json defaults)", await m
 check("no page errors", errors.length === 0, errors.slice(0, 2).join(" | "));
 console.log(`${results.filter(Boolean).length}/${results.length} passed`);
 await browser.close();
-process.exit(results.every(Boolean) ? 0 : 1);
+await finish(results.every(Boolean) ? 0 : 1);

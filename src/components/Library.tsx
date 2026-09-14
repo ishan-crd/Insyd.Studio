@@ -13,7 +13,10 @@ import { useSoundClips } from "./AudioTracks";
 // Short kind badges, as in the design: T for text, IMG for images, UI for everything else.
 export const kindBadge = (kind: string) => (kind === "text" ? "T" : kind === "image" ? "IMG" : "UI");
 
-export const Library: React.FC = () => {
+type Tab = "scenes" | "elements" | "sounds" | "brand";
+
+/** `only` restricts the tabs shown — the phone layout splits Brand into its own dock item. */
+export const Library: React.FC<{ only?: Tab[] }> = ({ only }) => {
   const def = useStore((s) => s.def)!;
   const scenes = useStore((s) => s.scenes());
   const scan = useStore((s) => s.scan);
@@ -22,7 +25,9 @@ export const Library: React.FC = () => {
   const layout = useStore((s) => s.layout);
   const codeDefaults = useStore((s) => s.codeDefaults);
   const props = useProps();
-  const [tab, setTab] = useState<"scenes" | "elements" | "sounds" | "brand">("elements");
+  const allowed: Tab[] = only ?? ["scenes", "elements", "sounds", "brand"];
+  const [tab, setTabRaw] = useState<Tab>(allowed.includes("elements") ? "elements" : allowed[0]);
+  const setTab = (t: Tab) => { if (allowed.includes(t)) setTabRaw(t); };
   const [closed, setClosed] = useState<Record<string, boolean>>({});
   const clips = useSoundClips();
 
@@ -55,14 +60,14 @@ export const Library: React.FC = () => {
 
   return (
     <div className="lib">
-      <div className="panel-tabs">
+      {allowed.length > 1 && <div className="panel-tabs">
         <div className="tabs">
-          <button className={tab === "scenes" ? "on" : ""} onClick={() => setTab("scenes")}>Scenes</button>
-          <button className={tab === "elements" ? "on" : ""} onClick={() => setTab("elements")}>Elements</button>
-          <button className={tab === "sounds" ? "on" : ""} onClick={() => setTab("sounds")}>Sounds</button>
-          <button className={tab === "brand" ? "on" : ""} onClick={() => { setTab("brand"); useStore.getState().select({ type: "brand" }); }}>Brand</button>
+          {allowed.includes("scenes") && <button className={tab === "scenes" ? "on" : ""} onClick={() => setTab("scenes")}>Scenes</button>}
+          {allowed.includes("elements") && <button className={tab === "elements" ? "on" : ""} onClick={() => setTab("elements")}>Elements</button>}
+          {allowed.includes("sounds") && <button className={tab === "sounds" ? "on" : ""} onClick={() => setTab("sounds")}>Sounds</button>}
+          {allowed.includes("brand") && <button className={tab === "brand" ? "on" : ""} onClick={() => { setTab("brand"); useStore.getState().select({ type: "brand" }); }}>Brand</button>}
         </div>
-      </div>
+      </div>}
       <div className="panel-body">
         {tab === "scenes" && scenes.map((sc) => (
           <div key={sc.id} className={`row ${selection?.type === "scene" && selection.id === sc.id ? "on" : ""}`} style={{ height: 30 }} onClick={() => { useStore.getState().select({ type: "scene", id: sc.id }); seek(sc.from); }}>

@@ -17,11 +17,14 @@ import { Timeline } from "./components/Timeline";
 import { useKeyboard } from "./lib/keyboard";
 import { ContextMenuHost } from "./components/ContextMenu";
 import { ShortcutsModal } from "./components/ShortcutsModal";
+import { MobileApp } from "./components/Mobile";
+import { useMobile } from "./lib/mobile";
 
 export const App: React.FC = () => {
   const ready = useStore((s) => s.def !== null);
   const toast = useStore((s) => s.toast);
   const [open, setOpen] = useState(false);
+  const mobile = useMobile();
   useKeyboard();
 
   useEffect(() => {
@@ -73,6 +76,7 @@ export const App: React.FC = () => {
   if (!def || open) return <OpenProject onCancel={def ? () => setOpen(false) : undefined} />;
   if (!ready) return <div className="welcome" />;
   if (new URLSearchParams(location.search).get("bare")) return <div className="app" style={{ gridTemplateColumns: "1fr", gridTemplateAreas: '"top" "preview" "tl"', gridTemplateRows: "48px 1fr 0px" }}><TopBar onOpen={() => setOpen(true)} /><Preview /></div>;
+  if (mobile) return <MobileApp onOpen={() => setOpen(true)} />;
   return (
     <div className="app">
       <TopBar onOpen={() => setOpen(true)} />

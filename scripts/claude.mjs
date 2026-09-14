@@ -3,7 +3,7 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
-const PROJECT = process.env.PROJECT || "/Users/ishangupta/Desktop/thumb-launch-wannabe";
+import { PROJECT } from "./lib/project.mjs";
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined });
 const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 }, permissions: ["clipboard-read", "clipboard-write"] });
 const page = await ctx.newPage();
