@@ -66,6 +66,7 @@ const apply = async (action: string, args: any) => {
     case "addSound": { const id = s.addSound({ src: args.src, at: args.at, volume: args.volume, kind: args.kind, label: args.label }); return { id }; }
     case "removeSound": { const c = soundClip(args.id); if (!c) throw new Error("Unknown sound " + args.id); if (c.added) s.removeSound(args.id); else s.setSound(args.id, { muted: true }); return { removed: c.added, muted: !c.added }; }
     case "setSceneDuration": s.setSceneDuration(args.id, args.frames); return { ok: true };
+    case "setSceneSpeed": s.setSceneSpeed(args.id, args.speed); return { ok: true };
     case "select": { const ids: string[] = args.ids; if (args.type === "scene") s.select({ type: "scene", id: ids[0] }); else useStore.setState({ selection: ids.length ? { type: args.type, id: ids[0] } : null, multi: ids }); return { ok: true }; }
     case "seek": seek(args.frame); return { ok: true };
     case "play": playerRef.current?.play(); return { ok: true };

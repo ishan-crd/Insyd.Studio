@@ -146,10 +146,10 @@ app.post("/api/apply", async (req, res) => {
     files.forEach((f) => vite?.watcher.unwatch(f));
     const result = applyLayout(dir, layout);
     const fallbackPath = path.join(dir, layoutFile);
-    let fallback = { version: 3, elements: {}, copy: {}, scenes: {}, props: {}, sounds: {} };
+    let fallback = { version: 3, elements: {}, copy: {}, scenes: {}, props: {}, sounds: {}, sceneSpeeds: {} };
     try { fallback = { ...fallback, ...JSON.parse(await fsp.readFile(fallbackPath, "utf8")) }; } catch {}
     // resolved ids leave the fallback file; unresolved ones are stored there
-    for (const k of ["elements", "copy", "scenes", "props", "sounds"]) {
+    for (const k of ["elements", "copy", "scenes", "props", "sounds", "sceneSpeeds"]) {
       fallback[k] = fallback[k] ?? {};
       for (const id of Object.keys(result.applied[k])) delete fallback[k][id];
       Object.assign(fallback[k], result.unresolved[k]);

@@ -58,11 +58,13 @@ export type Layout = {
   version: number;
   elements: Record<string, Partial<ElementTransform>>;
   copy: Record<string, string>;
-  scenes: Record<string, number>; // scene id -> duration in frames
+  scenes: Record<string, number>; // scene id -> duration in frames (timeline frames)
+  /** scene id -> playback speed of everything inside it (1 = normal); saved in layout.json */
+  sceneSpeeds?: Record<string, number>;
   props: Record<string, unknown>; // edit()/brand()/useAnim() overrides by id
   sounds: Record<string, SoundOverride>; // <Sound id> overrides + editor-added sounds
 };
-export const emptyLayout = (): Layout => ({ version: INSYD_SDK_VERSION, elements: {}, copy: {}, scenes: {}, props: {}, sounds: {} });
+export const emptyLayout = (): Layout => ({ version: INSYD_SDK_VERSION, elements: {}, copy: {}, scenes: {}, props: {}, sounds: {}, sceneSpeeds: {} });
 
 export const mergeLayout = (base: Layout, over?: Partial<Layout> | null): Layout => ({
   version: INSYD_SDK_VERSION,
@@ -71,6 +73,7 @@ export const mergeLayout = (base: Layout, over?: Partial<Layout> | null): Layout
   scenes: { ...base.scenes, ...(over?.scenes ?? {}) },
   props: { ...base.props, ...(over?.props ?? {}) },
   sounds: { ...(base.sounds ?? {}), ...(over?.sounds ?? {}) },
+  sceneSpeeds: { ...(base.sceneSpeeds ?? {}), ...(over?.sceneSpeeds ?? {}) },
 });
 
 // ---------- Contexts ----------
@@ -100,6 +103,18 @@ export const sceneDuration = (layout: Partial<Layout> | undefined, id: string, f
 
 /** Scene length in frames, overridable from the timeline. */
 export const useSceneDuration = (id: string, fallback: number): number => useLayout().scenes[id] ?? fallback;
+
+/** Playback speed of a scene (1 = normal). Set from the inspector; lives in layout.json. */
+export const sceneSpeed = (layout: Partial<Layout> | undefined, id: string) => Math.max(0.1, layout?.sceneSpeeds?.[id] ?? 1);
+
+/**
+ * Wrap a scene's component in this (inside its <Sequence>) so the editor can change the scene's
+ * speed: everything inside — animations, nested Sequences, sounds' timing — runs at that rate.
+ */
+export const SceneFrame: React.FC<{ id: string; children: React.ReactNode }> = ({ id, children }) => {
+  const speed = sceneSpeed(useLayout(), id);
+  return speed !== 1 ? <TimeScale speed={speed}>{children}</TimeScale> : <>{children}</>;
+};
 
 // ---------- Editable values ----------
 

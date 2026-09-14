@@ -30,7 +30,7 @@ zoom and Fit.
 | | |
 |---|---|
 | **Preview** | Click to select (innermost element wins), drag to move, corner handles to scale, `⇧` constrains, snapping to the canvas centre and to other elements with guides, `⇧`/`⌘`-click and box-select for groups. |
-| **Inspector** | Text · position / scale / rotation / opacity / visibility · timing (shift, visible window) · **speed** (0.25×–4×: an element's clock runs faster or slower so its animations re-time; a sound plays at that rate and its clip shortens) · every `edit()` property (sliders, colour pickers, toggles, enums) · animation editor (delay, spring presets or physics or bezier, from-values, curve preview) · lock. With several items selected, only shared fields show; edits apply to all. |
+| **Inspector** | Text · position / scale / rotation / opacity / visibility · timing (shift, visible window) · **speed** (0.25×–4× on elements, sounds and whole scenes: an element's clock runs faster or slower so its animations re-time; a sound plays at that rate and its clip shortens; a scene plays everything inside at that rate and its length follows) · every `edit()` property (sliders, colour pickers, toggles, enums) · animation editor (delay, spring presets or physics or bezier, from-values, curve preview) · lock. With several items selected, only shared fields show; edits apply to all. |
 | **Brand** | Global tokens (`brand()`): palette, backgrounds, fonts — change once, every scene follows. |
 | **Sounds** | Every `<Sound>` on the timeline with its waveform (effects in lanes over the music). Click the waveform in the inspector to listen. Volume, mute, trim, start, replace file (from `public/` or upload), `+ Sound` at the playhead. |
 | **Timeline** | Scenes track with filmstrip thumbnails and trimmable scenes · a clip per element with its entrance bar · audio lanes · drag, trim, split at playhead, duplicate (linked copies), copy/cut/paste at playhead, lock, hide/mute, delete · snapping to clips, cuts and the playhead · box selection · context menus · zoom, resize. |
@@ -79,7 +79,7 @@ get hero() { return brand("brand.hero", "#E9573F", { label: "Hero", group: "Colo
 <Sound id="hero.whoosh" src="sfx/whoosh.wav" at={12} volume={0.7} label="Whoosh" />            // 6. sounds
 <LayoutSounds />                                                     //    once in the root: sounds added in the editor
 export const SCENES = [{ id: "intro", label: "Intro", component: Intro, duration: 90 }, …];      // 7. scene table (literal durations)
-<Sequence durationInFrames={sceneDuration(layout, "intro", 90)}>…</Sequence>
+<Sequence durationInFrames={sceneDuration(layout, "intro", 90)}><SceneFrame id="intro"><Intro /></SceneFrame></Sequence>   //    SceneFrame lets the editor change the scene's speed
 ```
 
 Rules: defaults are **literals** in the source (that is what Save rewrites); ids are dotted

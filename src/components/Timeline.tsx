@@ -360,7 +360,7 @@ export const Timeline: React.FC = () => {
                     onPointerDown={(e) => { e.stopPropagation(); store().select({ type: "scene", id: sc.id }); seek(frameAt(e.clientX)); }}>
                     <Filmstrip from={sc.from} duration={sc.duration} ppf={ppf} />
                     <span className="slabel" style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{sc.label}</span>
-                    <span className="dur">{(sc.duration / def.fps).toFixed(1)}s</span>
+                    <span className="dur">{(layout.sceneSpeeds?.[sc.id] ?? 1) !== 1 ? `${+(layout.sceneSpeeds![sc.id]).toFixed(2)}× · ` : ""}{(sc.duration / def.fps).toFixed(1)}s</span>
                     <div className="edge" onPointerDown={(e) => dragScene(e, sc.id, sc.duration)} title="Drag to trim" />
                   </div>
                 );

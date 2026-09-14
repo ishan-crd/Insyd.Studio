@@ -59,6 +59,8 @@ type State = {
   setProp: (id: string, value: unknown, commit?: boolean) => void;
   resetProp: (id: string) => void;
   setSceneDuration: (id: string, frames: number, commit?: boolean) => void;
+  /** playback speed of a whole scene; its timeline duration is rescaled so it still plays the same content */
+  setSceneSpeed: (id: string, speed: number, commit?: boolean) => void;
   setSound: (id: string, patch: SoundOverride, commit?: boolean) => void;
   setSounds: (patches: Record<string, SoundOverride>, commit?: boolean) => void;
   resetSound: (id: string) => void;
@@ -77,8 +79,8 @@ const eq = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export const diffLayout = (layout: Layout, saved: Layout): Layout => {
   const out = emptyLayout();
-  for (const k of ["elements", "copy", "scenes", "props", "sounds"] as const) {
-    for (const [id, v] of Object.entries(layout[k])) if (!eq(v, (saved[k] as any)[id])) (out[k] as any)[id] = v;
+  for (const k of ["elements", "copy", "scenes", "props", "sounds", "sceneSpeeds"] as const) {
+    for (const [id, v] of Object.entries(layout[k] ?? {})) if (!eq(v, ((saved[k] ?? {}) as any)[id])) ((out as any)[k] as any)[id] = v;
   }
   return out;
 };
@@ -185,6 +187,15 @@ export const useStore = create<State>((set, get) => ({
   setSceneDuration: (id, frames, commit = true) => {
     const s = get(); if (commit) s.begin();
     set({ layout: { ...s.layout, scenes: { ...s.layout.scenes, [id]: Math.max(6, Math.round(frames)) } } });
+    if (commit) get().end();
+  },
+  setSceneSpeed: (id, speed, commit = true) => {
+    const s = get(); if (commit) s.begin();
+    const sp = Math.max(0.25, Math.min(4, Math.round(speed * 100) / 100));
+    const cur = s.layout.sceneSpeeds?.[id] ?? 1;
+    const dur = s.layout.scenes[id] ?? s.def?.scenes.find((x) => x.id === id)?.durationInFrames ?? 30;
+    const next = Math.max(6, Math.round((dur * cur) / sp));
+    set({ layout: { ...s.layout, scenes: { ...s.layout.scenes, [id]: next }, sceneSpeeds: { ...(s.layout.sceneSpeeds ?? {}), [id]: sp } } });
     if (commit) get().end();
   },
   setSound: (id, patch, commit = true) => {

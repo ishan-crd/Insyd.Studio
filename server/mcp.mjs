@@ -108,6 +108,10 @@ export const createMcpServer = (ctx) => {
     try { await mutate(`set scene ${id} to ${frames} frames`, "setSceneDuration", { id, frames }); return text({ ok: true }); } catch (e) { return err(e); }
   });
 
+  server.registerTool("set_scene_speed", { title: "Speed up / slow down a scene", description: "Play everything in a scene at a rate (0.25–4; 2 = twice as fast). Its duration is rescaled so it still shows the same content; later scenes shift.", inputSchema: { id: z.string(), speed: z.number().min(0.25).max(4) } }, async ({ id, speed }) => {
+    try { await mutate(`set scene ${id} to ${speed}× speed`, "setSceneSpeed", { id, speed }); return text({ ok: true }); } catch (e) { return err(e); }
+  });
+
   server.registerTool("select", { title: "Select in the editor", description: "Highlight elements or sounds in the UI (so the person sees what you mean).", inputSchema: { type: z.enum(["element", "sound", "scene"]), ids: z.array(z.string()) } }, async ({ type, ids }) => {
     try { await need("apply", { action: "select", args: { type, ids } }); return text({ ok: true }); } catch (e) { return err(e); }
   });

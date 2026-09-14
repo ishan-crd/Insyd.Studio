@@ -139,8 +139,9 @@ export const applyLayout = (dir, layout) => {
   const { byLocator } = buildIndex(dir);
   const edits = new Map(); // file -> [{start,end,text}]
   const push = (file, start, end, text) => { if (!edits.has(file)) edits.set(file, []); edits.get(file).push({ start, end, text }); };
-  const applied = { elements: {}, copy: {}, scenes: {}, props: {}, sounds: {} };
-  const unresolved = { elements: {}, copy: {}, scenes: {}, props: {}, sounds: {} };
+  const applied = { elements: {}, copy: {}, scenes: {}, props: {}, sounds: {}, sceneSpeeds: {} };
+  // scene speeds have no code literal: they always live in layout.json
+  const unresolved = { elements: {}, copy: {}, scenes: {}, props: {}, sounds: {}, sceneSpeeds: { ...(layout.sceneSpeeds ?? {}) } };
 
   for (const [id, v] of Object.entries(layout.props ?? {})) {
     const e = byLocator.get(`call:${id}`);

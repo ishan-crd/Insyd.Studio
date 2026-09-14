@@ -185,7 +185,9 @@ export const Inspector: React.FC = () => {
             <div className="field"><label>Duration<span className="val">{seconds(d, def.fps)}</span></label><NumberField unit="f" value={d} step={1} min={6} onChange={(v, c) => store().setSceneDuration(sc.id, v, c)} /></div>
           </div>
           <div className="hint">Drag the right edge of the scene block in the timeline to trim it. Scenes after it shift automatically.</div>
-          <div className="btnrow"><button className="btn sm" onClick={() => { const s = store(); s.begin(); const scenesL = { ...s.layout.scenes }; delete scenesL[sc.id]; useStore.setState({ layout: { ...s.layout, scenes: scenesL } }); s.end(); }}>Reset duration</button></div>
+          <SpeedField value={layout.sceneSpeeds?.[sc.id] ?? 1} onChange={(v, c) => store().setSceneSpeed(sc.id, v, c)}
+            hint={(layout.sceneSpeeds?.[sc.id] ?? 1) !== 1 ? `Everything in this scene plays at ${+(layout.sceneSpeeds?.[sc.id] ?? 1).toFixed(2)}×; its length follows (${seconds(d, def.fps)}). Saved in layout.json.` : "Plays the whole scene faster or slower — its length on the timeline follows."} />
+          <div className="btnrow"><button className="btn sm" onClick={() => { const s = store(); s.begin(); const scenesL = { ...s.layout.scenes }; delete scenesL[sc.id]; const sp = { ...(s.layout.sceneSpeeds ?? {}) }; delete sp[sc.id]; useStore.setState({ layout: { ...s.layout, scenes: scenesL, sceneSpeeds: sp } }); s.end(); }}>Reset duration & speed</button></div>
         </div>
         <PropGroups props={sceneProps} title="Scene" />
       </>

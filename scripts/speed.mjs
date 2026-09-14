@@ -56,15 +56,38 @@ check("its clip is half as long on the timeline", Math.abs(framesAfter * 2 - fra
 check("the composition plays it at 2× (registry)", await page.evaluate((id) => window.__insydRegistry.getSounds("main").find((x) => x.id === id)?.speed === 2, snd));
 check("clip label shows 2×", /2×/.test(await page.innerText(`.aclip[data-clip-id="${snd}"]`)));
 
+// ---- scene: whole-scene speed (layout.json), duration follows
+const scene = await page.evaluate(() => { const s = window.__insydStore.getState(); const sc = s.scenes()[1]; return { id: sc.id, from: sc.from, duration: sc.duration }; });
+const total0 = await page.evaluate(() => window.__insydStore.getState().duration());
+const inScene = await page.evaluate((id) => window.__insydStore.getState().allElements().find((e) => e.sceneId === id)?.id, scene.id);
+const sceneSig1 = await styleAt(inScene, scene.from + 8);
+await page.evaluate((id) => window.__insydStore.getState().select({ type: "scene", id }), scene.id); await page.waitForTimeout(300);
+check("scene inspector has the Speed field", /Speed/.test(await page.innerText(".insp")) && (await page.locator('.insp .tabs button:has-text("2×")').count()) === 1);
+await page.click('.insp .tabs button:has-text("2×")'); await page.waitForTimeout(400);
+st = await S();
+check("scene speed 2 stored in layout.sceneSpeeds", st.layout.sceneSpeeds?.[scene.id] === 2);
+const spans = () => page.evaluate((id) => { const s = window.__insydStore.getState(); return { dur: s.scenes().find((x) => x.id === id).duration, total: s.duration() }; }, scene.id);
+const sp2 = await spans();
+check("scene duration halves and later scenes shift", sp2.dur === Math.round(scene.duration / 2) && sp2.total === total0 - (scene.duration - sp2.dur), `${scene.duration} → ${sp2.dur} frames · total ${total0} → ${sp2.total}`);
+const sceneSig2 = await styleAt(inScene, scene.from + 4);
+check("an element inside the scene at +4 frames matches +8 frames at 1×", sceneSig2 === sceneSig1, inScene);
+check("scene block shows 2×", /2×/.test(await page.innerText(".trow.scene .sblock.on")));
+await page.click('.insp .tabs button:has-text("1×")'); await page.waitForTimeout(300);
+st = await S(); check("back to 1× restores the original duration", (await spans()).dur === scene.duration && st.layout.sceneSpeeds?.[scene.id] === 1);
+await page.evaluate(() => { const s = window.__insydStore.getState(); s.undo(); s.undo(); }); await page.waitForTimeout(200);
+
 // ---- save: speed reaches the code (element attribute + sound attribute), restore afterwards
 const files = () => { const out = {}; const walk = (d) => { for (const e of fs.readdirSync(d, { withFileTypes: true })) { const p = path.join(d, e.name); if (e.isDirectory()) walk(p); else if (/\.tsx?$/.test(e.name)) out[p] = fs.readFileSync(p, "utf8"); } }; walk(path.join(PROJECT, "src")); return out; };
 const before = files(); const layoutBefore = fs.readFileSync(path.join(PROJECT, "layout.json"), "utf8");
 await page.evaluate((id) => window.__insydStore.getState().updateElement(id, { speed: 1.5 }), pick.id);
+await page.evaluate((id) => window.__insydStore.getState().setSceneSpeed(id, 2), scene.id);
 await page.click('.topbar .btn:has-text("Save")'); await page.waitForTimeout(3000);
 const after = files();
 const changed = Object.keys(after).filter((f) => after[f] !== before[f]);
 check("save rewrote source files", changed.length > 0, changed.map((f) => path.basename(f)).join(", "));
 check("element speed written as speed={1.5}", changed.some((f) => new RegExp(`<Editable[^>]*id=\\{?["'\`]?${pick.id.replace(/\./g, "\\.")}[^>]*speed=\\{1\\.5\\}`).test(after[f]) || new RegExp(`<Editable[^>]*speed=\\{1\\.5\\}[^>]*${pick.id.replace(/\./g, "\\.")}`).test(after[f])) || Object.values(after).some((t) => /speed=\{1\.5\}/.test(t)));
+const lj = JSON.parse(fs.readFileSync(path.join(PROJECT, "layout.json"), "utf8"));
+check("scene speed saved to layout.json (no code literal) and its duration written to the SCENES table", lj.sceneSpeeds?.[scene.id] === 2 && Object.values(after).some((t) => new RegExp(`id: "${scene.id}"[^}]*duration: ${Math.round(scene.duration / 2)}`).test(t)));
 check("sound speed written as speed={2}", Object.values(after).some((t) => /speed=\{2\}/.test(t)) || /"speed": 2/.test(fs.readFileSync(path.join(PROJECT, "layout.json"), "utf8")));
 for (const [f, t] of Object.entries(before)) fs.writeFileSync(f, t);
 fs.writeFileSync(path.join(PROJECT, "layout.json"), layoutBefore);
