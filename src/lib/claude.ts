@@ -8,7 +8,7 @@ export const contextPayload = () => {
   const def = s.def!;
   const props = registry.getProps();
   return {
-    def: { id: def.id, width: def.width, height: def.height, fps: def.fps, scenes: def.scenes },
+    def: { id: def.id, name: def.name, width: def.width, height: def.height, fps: def.fps, scenes: def.scenes },
     layout: s.layout,
     scan: {
       elements: s.allElements(),
@@ -19,16 +19,15 @@ export const contextPayload = () => {
   };
 };
 
-export const openInClaudeCode = async () => {
+/** Copies a self-contained prompt (instructions + the full brief) for any Claude without the MCP; also refreshes CLAUDE.md. */
+export const copyClaudePrompt = async () => {
   const s = useStore.getState();
   try {
-    const r = await api.claudeOpen(contextPayload());
-    if (r.ok) s.setToast("Opened Terminal — Claude Code is starting with the Studio context");
-    else if (r.reason === "claude-not-found") {
-      await navigator.clipboard.writeText(r.brief).catch(() => {});
-      s.setToast("Claude Code CLI not found — context written to CLAUDE.md and copied; run `claude` in the project folder");
-    }
-  } catch (e: any) { s.setToast("Could not open Claude Code: " + e.message); }
+    const r = await api.claudeContext(contextPayload());
+    await navigator.clipboard.writeText(r.prompt);
+    s.setToast(`Prompt copied (${Math.round(r.prompt.length / 1024)} KB) · ${r.file} updated`);
+    return r;
+  } catch (e: any) { s.setToast("Could not copy the prompt: " + e.message); return null; }
 };
 
 export const copyClaudeContext = async () => {

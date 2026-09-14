@@ -15,7 +15,7 @@ await page.waitForTimeout(2000);
 check("top bar has the Open in Claude Code button", await page.locator('button:has-text("Open in Claude Code")').count() === 1);
 
 // --- Copy context → CLAUDE.md written with the inventory
-await page.locator('.split .btn[title^="Copy the same context"]').click();
+await page.locator('.split .btn[title^="Copy prompt"]').click();
 await page.waitForFunction(() => /Context copied/.test(document.body.innerText), null, { timeout: 15000 }).catch(() => {});
 const md = fs.readFileSync(path.join(PROJECT, "CLAUDE.md"), "utf8");
 check("CLAUDE.md written with the Studio section", md.includes("insyd-studio:start") && /Studio by Insyd — live editing context/.test(md));
@@ -23,10 +23,10 @@ check("brief lists scenes, elements, sounds and editable values", /## Scenes[\s\
 check("brief points at files", /src\/scenes\/SceneSearch\.tsx/.test(md) && /src\/theme\.ts/.test(md));
 check("brief explains the contract + live reload", /Every file you save under/.test(md) && /useCopy/.test(md) && /layout.json win over code/.test(md));
 const clip = await page.evaluate(() => navigator.clipboard.readText().catch(() => ""));
-check("same brief copied to the clipboard", clip.includes("insyd-studio:start"), `${(clip.length / 1024).toFixed(0)} KB`);
+check("prompt copied to the clipboard carries the brief", /helping edit the Remotion video/.test(clip) && clip.includes("insyd-studio:start"), `${(clip.length / 1024).toFixed(0)} KB`);
 // regenerating replaces the section (no duplication) and preserves other content
 fs.writeFileSync(path.join(PROJECT, "CLAUDE.md"), "# My notes\nkeep me\n\n" + md);
-await page.locator('.split .btn[title^="Copy the same context"]').click(); await page.waitForTimeout(1500);
+await page.locator('.split .btn[title^="Copy prompt"]').click(); await page.waitForTimeout(1500);
 const md2 = fs.readFileSync(path.join(PROJECT, "CLAUDE.md"), "utf8");
 check("regeneration replaces the section in place and keeps other content", md2.startsWith("# My notes\nkeep me") && (md2.match(/insyd-studio:start/g) || []).length === 1);
 

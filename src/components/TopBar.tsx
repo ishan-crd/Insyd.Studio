@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useStore } from "../state/store";
 import { saveToCode } from "../lib/persist";
-import { Export, Redo, Undo, ClaudeMark, Copy, Plug, Keyboard, Sun, Moon, ChevronDown } from "../lib/icons";
-import { copyClaudeContext } from "../lib/claude";
+import { Export, Redo, Undo, ClaudeMark, Copy, Keyboard, Sun, Moon, ChevronDown } from "../lib/icons";
+import { copyClaudePrompt } from "../lib/claude";
 import { ClaudeDialog } from "./ClaudeDialog";
 import { ExportDialog } from "./ExportDialog";
 import { useShortcuts } from "./ShortcutsModal";
@@ -23,7 +23,7 @@ export const TopBar: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
   const pendingCount = useStore((s) => Object.values(s.pending()).filter((v) => typeof v === "object").reduce((a, v: any) => a + Object.keys(v).length, 0));
   const theme = useTheme((s) => s.theme);
   const [exp, setExp] = useState(false);
-  const [claude, setClaude] = useState<null | { autoLaunch: boolean }>(null);
+  const [claude, setClaude] = useState(false);
   return (
     <div className="topbar">
       <Brand />
@@ -39,11 +39,10 @@ export const TopBar: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
       </div>
       <div className="spacer" />
       <div className="split">
-        <button className="btn" title="Open Terminal here and start Claude Code connected to Studio (MCP + full context). Its edits appear live." onClick={() => setClaude({ autoLaunch: true })}><ClaudeMark /> Open in Claude Code</button>
-        <button className="btn icon" title="Copy the same context to the clipboard (and write it to CLAUDE.md)" onClick={copyClaudeContext}><Copy /></button>
-        <button className="btn icon" title="Connect Claude Desktop / Claude Code over MCP" onClick={() => setClaude({ autoLaunch: false })}><Plug /></button>
+        <button className="btn" title="Connect Claude Code over MCP and open it in a Terminal — nothing runs until you press a button in the dialog" onClick={() => setClaude(true)}><ClaudeMark /> Open in Claude Code</button>
+        <button className="btn icon" title="Copy prompt for any Claude (no MCP) — includes the full context and refreshes CLAUDE.md" onClick={copyClaudePrompt}><Copy /></button>
       </div>
-      {claude && <ClaudeDialog autoLaunch={claude.autoLaunch} onClose={() => setClaude(null)} />}
+      {claude && <ClaudeDialog onClose={() => setClaude(false)} />}
       <button className="btn icon" title="Keyboard shortcuts (?)" onClick={() => useShortcuts.getState().set(true)}><Keyboard /></button>
       <button className="btn icon" title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} onClick={() => useTheme.getState().toggle()}>{theme === "dark" ? <Sun /> : <Moon />}</button>
       <button className="btn" onClick={saveLayout} disabled={!dirty || saving} title="Write changes into the project's source files (⌘S)">{saving ? "Saving…" : "Save"}{pendingCount > 0 && !saving && <span className="count">{pendingCount}</span>}</button>

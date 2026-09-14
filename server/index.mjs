@@ -184,13 +184,26 @@ const makeContext = (body) => {
   const file = writeClaudeMd(dir, brief);
   return { dir, brief, file };
 };
-// Regenerates CLAUDE.md and returns the brief (also used for "Copy context").
-app.post("/api/claude/context", (req, res) => {
+// Kickoff for a Claude that has the insyd-studio MCP tools.
+const KICKOFF_MCP = "You are connected to Studio by Insyd for this project: the editor is open and the person is watching it. You have the insyd-studio MCP tools — prefer them for changes (they apply live in the editor and are undoable; use set_sounds/set_values for bulk edits, preview_frame to look, save to write into the code). Edit source files directly only for structural changes the tools cannot express. CLAUDE.md has the full inventory. Reply with one line confirming you are connected (call get_project), then wait for instructions.";
+// Kickoff for any Claude without the MCP (claude.ai, Desktop, another agent): the brief travels with it.
+const promptWithoutMcp = (name, brief) => `You are helping edit the Remotion video "${name}", which is open in Studio by Insyd (${`http://${SHOW_HOST}:${PORT}`}). The person is watching the editor: it reloads the preview live whenever a source file changes, so make edits directly in the code — the literals inside edit() / brand() / useCopy() / useAnim() / <Editable> / <Sound> and the scene durations — and they will see each change as you go. The full inventory (scenes, elements, sounds, editable values, which file each lives in, and the rules) follows. Reply with one line confirming you have read it, then wait for instructions.
+
+${brief}`;
+const shellQuote = (s) => "'" + s.replace(/'/g, `'\\''`) + "'";
+// The prompt goes first: --mcp-config is variadic and would swallow anything after it.
+const launchCommand = (dir, claude) => `cd ${shellQuote(dir)} && clear && ${shellQuote(claude)} ${shellQuote(KICKOFF_MCP)} --mcp-config ${shellQuote(mcpConfigPath)}`;
+
+// Regenerates CLAUDE.md and returns the brief, the no-MCP prompt and the Terminal command.
+app.post("/api/claude/context", async (req, res) => {
   if (!process.env.INSYD_PROJECT) return res.status(400).json({ error: "No project open" });
-  try { const { brief, file } = makeContext(req.body); res.json({ ok: true, brief, file: path.basename(file) }); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  try {
+    const { dir, brief, file } = makeContext(req.body);
+    const claude = await findClaude();
+    res.json({ ok: true, brief, file: path.basename(file), prompt: promptWithoutMcp(req.body.def?.name ?? path.basename(dir), brief), kickoff: KICKOFF_MCP, cmd: launchCommand(dir, claude || "claude"), claude });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
-// Opens Terminal in the project and starts Claude Code with a kickoff prompt.
+// Opens Terminal in the project and starts Claude Code with the MCP attached and the kickoff prompt.
 app.post("/api/claude/open", async (req, res) => {
   const dir = process.env.INSYD_PROJECT;
   if (!dir) return res.status(400).json({ error: "No project open" });
@@ -198,16 +211,14 @@ app.post("/api/claude/open", async (req, res) => {
     const { brief } = makeContext(req.body);
     const claude = await findClaude();
     if (!claude) return res.json({ ok: false, brief, reason: "claude-not-found" });
-    const kickoff = "You are connected to Studio by Insyd for this project: the editor is open and the person is watching it. You have the insyd-studio MCP tools — prefer them for changes (they apply live in the editor and are undoable; use set_sounds/set_values for bulk edits, preview_frame to look, save to write into the code). Edit source files directly only for structural changes the tools cannot express. CLAUDE.md has the full inventory. Reply with one line confirming you are connected (call get_project), then wait for instructions.";
-    const q = (s) => "'" + s.replace(/'/g, `'\\''`) + "'";
-    const cmd = `cd ${q(dir)} && clear && ${q(claude)} --mcp-config ${q(mcpConfigPath)} ${q(kickoff)}`;
+    const cmd = launchCommand(dir, claude);
     const script = `tell application "Terminal"
   activate
   do script ${JSON.stringify(cmd)}
 end tell`;
     if (req.body.dryRun) return res.json({ ok: true, brief, claude, cmd });
     await exec("osascript", ["-e", script]);
-    res.json({ ok: true, brief });
+    res.json({ ok: true, brief, cmd });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

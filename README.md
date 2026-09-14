@@ -46,12 +46,13 @@ project (`get_project`, `list_elements`, `list_sounds`, `list_values`, `get_cont
 editor tab, so they are live, undoable, and announced with a toast. *"Set every whoosh to 10%"* is one
 `set_sounds({ query: "whoosh", volume: 0.1 })`.
 
-- **Open in Claude Code** (top bar) writes the full brief into the project's `CLAUDE.md`, opens Terminal
-  in the project and starts `claude` with the MCP attached and a kickoff prompt. If the CLI is missing,
-  the dialog shows the install command.
-- **Claude & Studio dialog** (plug icon) shows the connection status and the one-liners for a permanent
-  Claude Code setup (`claude mcp add --transport http insyd-studio http://localhost:4321/mcp`) and for
-  Claude Desktop (`mcp-remote`).
+- **Open in Claude Code** (top bar) opens a dialog — nothing runs until you press a button: connection
+  status; step 1, the one-liner that registers the MCP with Claude Code
+  (`claude mcp add --transport http insyd-studio http://localhost:4321/mcp`); step 2, **Open Terminal**,
+  which refreshes the project's `CLAUDE.md` with the full brief and starts `claude` in the project with
+  the MCP attached and a kickoff prompt. **Copy prompt** (also the copy icon next to the button) gives a
+  self-contained prompt with the whole inventory for any Claude without the MCP — Studio reloads the
+  preview live as files change. Claude Desktop (`mcp-remote`) setup and the tool list are under "Show".
 - Edits Claude makes directly to files also show up: the preview reloads within a second, keeps your
   playhead and selection, and the timeline rescans itself if elements or sounds were added.
 

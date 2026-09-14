@@ -322,7 +322,7 @@ input[type="range"]:focus { box-shadow: none; }
 .scanbar .bar i { display: block; height: 100%; background: var(--primary); }
 
 /* ---------- dialogs / misc ---------- */
-.modal-bg { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: center; z-index: 50; }
+.modal-bg { position: fixed; inset: 0; background: var(--scrim); display: grid; place-items: center; z-index: 50; white-space: normal; }
 .modal { width: 520px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-modal); padding: 20px; color: var(--ink); }
 .modal h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
 .modal p { margin: 3px 0 16px; color: var(--ink-3); line-height: 1.5; font-size: 12px; }
@@ -443,3 +443,13 @@ input[type="range"]:focus { box-shadow: none; }
 .callout { padding: 10px 12px; border-radius: 6px; background: var(--panel-2); border: 1px solid var(--field-border); color: var(--ink-2); font-size: 12px; line-height: 1.5; margin-bottom: 8px; }
 .callout.ok { border-color: color-mix(in srgb, var(--ok) 50%, transparent); background: color-mix(in srgb, var(--ok) 8%, var(--panel)); color: var(--ink); }
 .callout.warn { border-color: color-mix(in srgb, var(--warn) 60%, transparent); background: color-mix(in srgb, var(--warn) 10%, var(--panel)); color: var(--ink); }
+
+/* Claude dialog steps */
+.step { display: flex; gap: 12px; padding: 0 0 16px; }
+.step-n { width: 22px; height: 22px; border-radius: 50%; background: var(--primary); color: var(--on-primary); display: grid; place-items: center; font-size: 11px; font-weight: 600; flex-shrink: 0; margin-top: 1px; }
+.step-body { flex: 1; min-width: 0; }
+.step-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+.step .hint { padding: 0 0 8px; }
+.step .snippet { margin: 0; }
+.or { display: flex; align-items: center; gap: 12px; margin: 2px 0 16px; color: var(--ink-3); font-size: 11px; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
