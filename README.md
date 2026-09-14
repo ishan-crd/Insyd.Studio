@@ -1,9 +1,7 @@
 <h1 align="center">Studio</h1>
 <p align="center"><sub><b>BY INSYD</b></sub></p>
 
-# Studio by Insyd
-
-A desktop-grade video editor for **Remotion** projects, with Claude built in.
+<p align="center">A desktop-grade video editor for <b>Remotion</b> projects, with Claude built in.</p>
 
 Open a Remotion project, see every scene, element and sound on a timeline, and edit text, colours,
 sizes, backgrounds, positions, timing, animations and audio by hand — or ask Claude. **Save writes the
