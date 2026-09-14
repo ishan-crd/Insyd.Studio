@@ -27,10 +27,12 @@ export type ElementTransform = {
   trimIn: number; trimOut: number | null;
   /** editor-only: cannot be moved or edited until unlocked */
   locked: boolean;
+  /** time remap: the element's own clock runs `speed`× (2 = its animations play twice as fast) */
+  speed: number;
   /** a linked instance of another Editable created in the editor (renders the same content) */
   cloneOf?: string;
 };
-export const DEFAULT_TRANSFORM: ElementTransform = { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1, hidden: false, delay: 0, trimIn: 0, trimOut: null, locked: false };
+export const DEFAULT_TRANSFORM: ElementTransform = { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1, hidden: false, delay: 0, trimIn: 0, trimOut: null, locked: false, speed: 1 };
 
 export type SoundKind = "sfx" | "music" | "voice";
 export type SoundOverride = {
@@ -46,6 +48,8 @@ export type SoundOverride = {
   duration?: number | null;
   /** editor-only: cannot be moved or edited until unlocked */
   locked?: boolean;
+  /** playback rate (1 = normal, 2 = twice as fast and half as long) */
+  speed?: number;
   /** a sound created in the editor (no code counterpart) — rendered by <LayoutSounds/> */
   added?: boolean; at?: number; label?: string; kind?: SoundKind; loop?: boolean;
 };
@@ -264,9 +268,9 @@ export type SoundEntry = {
   /** effective shift (override or code default) */
   shift: number;
   volume: number; muted: boolean; repeat: number; every: number; loop: boolean;
-  trimStart: number; duration: number | null; locked: boolean;
+  trimStart: number; duration: number | null; locked: boolean; speed: number;
   /** defaults as written in the code */
-  defaults: { shift: number; volume: number; muted: boolean; src: string; trimStart: number; duration: number | null; locked: boolean };
+  defaults: { shift: number; volume: number; muted: boolean; src: string; trimStart: number; duration: number | null; locked: boolean; speed: number };
   added: boolean;
 };
 const soundChannels: Record<Channel, { sounds: Map<string, SoundEntry>; listeners: Set<Listener>; snapshot: SoundEntry[]; scheduled: boolean }> = {
@@ -402,6 +406,29 @@ export const Editable: React.FC<EditableProps> = ({ id, label, kind = "block", c
   );
 };
 
+/**
+ * Runs the children's clock at `speed`×. Remotion computes useCurrentFrame() as
+ * timelinePosition − (cumulatedFrom + relativeFrom) of the enclosing Sequence, so re-basing
+ * cumulatedFrom makes every hook below (useCurrentFrame, useAnim, nested Sequences) see the
+ * remapped frame: round(localFrame × speed).
+ */
+const TimeScale: React.FC<{ speed: number; children: React.ReactNode }> = ({ speed, children }) => {
+  const frame = useCurrentFrame();
+  const timeline = Internals.useTimelinePosition();
+  const ctx = useContext(Internals.SequenceContext);
+  const config = useVideoConfig();
+  const remapped = Math.round(frame * speed);
+  const relativeFrom = ctx?.relativeFrom ?? 0;
+  const value = useMemo(() => ({
+    absoluteFrom: ctx?.absoluteFrom ?? 0, cumulatedNegativeFrom: ctx?.cumulatedNegativeFrom ?? 0,
+    parentFrom: ctx?.parentFrom ?? 0, durationInFrames: ctx?.durationInFrames ?? config.durationInFrames, id: ctx?.id ?? "insyd-speed",
+    width: ctx?.width ?? config.width, height: ctx?.height ?? config.height, premounting: ctx?.premounting ?? false, postmounting: ctx?.postmounting ?? false,
+    premountDisplay: ctx?.premountDisplay ?? null,
+    relativeFrom, cumulatedFrom: timeline - remapped - relativeFrom,
+  }), [ctx, config.durationInFrames, config.width, config.height, timeline, remapped, relativeFrom]);
+  return <Internals.SequenceContext.Provider value={value as any}>{children}</Internals.SequenceContext.Provider>;
+};
+
 const stripUndefined = <T extends object>(o: T): Partial<T> => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
 
 const EditableBody: React.FC<{
@@ -423,6 +450,7 @@ const EditableBody: React.FC<{
   useLayoutEffect(() => () => { if (channel) registry.removeElement(id, channel); }, [channel, id]);
 
   const gone = !inWindow || (t.hidden && !editor);
+  const body = t.speed && t.speed !== 1 ? <TimeScale speed={t.speed}>{children}</TimeScale> : children;
   return (
     <div
       ref={ref}
@@ -437,7 +465,7 @@ const EditableBody: React.FC<{
         pointerEvents: gone ? "none" : undefined,
       }}
     >
-      {children}
+      {body}
     </div>
   );
 };
@@ -468,6 +496,8 @@ export type SoundProps = {
   duration?: number;
   /** editor-only lock (no effect on rendering) */
   locked?: boolean;
+  /** playback rate: 2 plays twice as fast (and half as long) */
+  speed?: number;
   /** frames to fade in from silence / out to silence */
   fadeIn?: number;
   fadeOut?: number;
@@ -479,13 +509,14 @@ export type SoundProps = {
  * An editable sound. Plays `src` at `at` (+ `shift`); the editor can re-time, replace, re-level
  * and mute it, and shows it as a clip on the audio tracks.
  */
-export const Sound: React.FC<SoundProps> = ({ id, src, at = 0, volume = 1, muted = false, shift = 0, label, kind = "sfx", repeat = 1, every = 2, loop = false, trimStart = 0, duration, locked = false, fadeIn = 0, fadeOut = 0, added = false }) => {
+export const Sound: React.FC<SoundProps> = ({ id, src, at = 0, volume = 1, muted = false, shift = 0, label, kind = "sfx", repeat = 1, every = 2, loop = false, trimStart = 0, duration, locked = false, speed = 1, fadeIn = 0, fadeOut = 0, added = false }) => {
   const layout = useContext(LayoutContext);
   const channel = useChannel();
   const o = layout.sounds?.[id] ?? {};
   const eff = {
     src: o.src ?? src, volume: o.volume ?? volume, muted: o.muted ?? muted, shift: o.shift ?? shift,
     trimStart: o.trimStart ?? trimStart, duration: o.duration === undefined ? (duration ?? null) : o.duration, locked: o.locked ?? locked,
+    speed: Math.max(0.1, o.speed ?? speed ?? 1),
   };
   const start = at + eff.shift;
   const local = useCurrentFrame();
@@ -496,10 +527,10 @@ export const Sound: React.FC<SoundProps> = ({ id, src, at = 0, volume = 1, muted
     if (!channel) return;
     registry.reportSound({
       id, label: label ?? id, kind, src: eff.src, url, absStart, shift: eff.shift, volume: eff.volume, muted: eff.muted, repeat, every, loop,
-      trimStart: eff.trimStart, duration: eff.duration, locked: eff.locked,
-      defaults: { shift, volume, muted, src, trimStart, duration: duration ?? null, locked }, added,
+      trimStart: eff.trimStart, duration: eff.duration, locked: eff.locked, speed: eff.speed,
+      defaults: { shift, volume, muted, src, trimStart, duration: duration ?? null, locked, speed }, added,
     }, channel);
-  }, [channel, id, label, kind, eff.src, url, absStart, eff.shift, eff.volume, eff.muted, eff.trimStart, eff.duration, eff.locked, repeat, every, loop, shift, volume, muted, src, trimStart, duration, locked, added]);
+  }, [channel, id, label, kind, eff.src, url, absStart, eff.shift, eff.volume, eff.muted, eff.trimStart, eff.duration, eff.locked, eff.speed, repeat, every, loop, shift, volume, muted, src, trimStart, duration, locked, speed, added]);
   useLayoutEffect(() => () => { if (channel) registry.removeSound(id, channel); }, [channel, id]);
   if (eff.muted || eff.volume <= 0) return null;
   const total = eff.duration ?? null;
@@ -515,7 +546,7 @@ export const Sound: React.FC<SoundProps> = ({ id, src, at = 0, volume = 1, muted
     <>
       {Array.from({ length: Math.max(1, repeat) }).map((_, i) => (
         <Sequence key={i} from={start + i * every} durationInFrames={eff.duration ?? undefined} layout="none" name={`sound:${id}`}>
-          <Audio src={url} volume={vol} loop={loop} startFrom={eff.trimStart || undefined} />
+          <Audio src={url} volume={vol} loop={loop} startFrom={eff.trimStart || undefined} playbackRate={eff.speed !== 1 ? eff.speed : undefined} />
         </Sequence>
       ))}
     </>
@@ -528,7 +559,7 @@ export const LayoutSounds: React.FC = () => {
   return (
     <>
       {Object.entries(layout.sounds ?? {}).filter(([, o]) => o.added && o.src).map(([id, o]) => (
-        <Sound key={id} id={id} src={o.src!} at={o.at ?? 0} volume={o.volume ?? 0.8} muted={o.muted} label={o.label ?? o.src} kind={o.kind ?? "sfx"} loop={o.loop} trimStart={o.trimStart} duration={o.duration ?? undefined} locked={o.locked} added />
+        <Sound key={id} id={id} src={o.src!} at={o.at ?? 0} volume={o.volume ?? 0.8} muted={o.muted} label={o.label ?? o.src} kind={o.kind ?? "sfx"} loop={o.loop} trimStart={o.trimStart} duration={o.duration ?? undefined} locked={o.locked} speed={o.speed} added />
       ))}
     </>
   );

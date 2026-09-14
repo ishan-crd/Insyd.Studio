@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { registry, useElements, useProps, type PropEntry } from "@project/sdk";
 import { useStore } from "../state/store";
 import { seconds } from "../lib/format";
-import { NumberField, TextField, BoolField, PropControl } from "./Fields";
+import { NumberField, TextField, BoolField, PropControl, SpeedField } from "./Fields";
 import { Eye, EyeOff, Film } from "../lib/icons";
 import { propsOf } from "../lib/owners";
 import { SoundInspector } from "./SoundInspector";
@@ -148,6 +148,7 @@ export const Inspector: React.FC = () => {
                 <div className="field"><label>To</label><NumberField unit="f" value={t.trimOut ?? (meta ? meta.last - meta.first : 0)} step={1} onChange={(v, c) => upd({ trimOut: Math.round(v) }, c)} /></div>
               </div>
               {meta && <div className="hint">On screen from frame {from} to {from + winLen - 1}. Positive shift = later; the visible window is in the element's own frames.</div>}
+              <SpeedField value={t.speed ?? 1} onChange={(v, c) => upd({ speed: v }, c)} hint={t.speed && t.speed !== 1 ? `Its animations and any Sequences inside run ${+t.speed.toFixed(2)}× ${t.speed > 1 ? "faster" : "slower"}; the visible window stays the same.` : "Runs the element's own clock faster or slower — its entrance and everything animated inside."} />
             </div>
             <PropGroups props={plain} />
             <div className="sect">

@@ -18,8 +18,8 @@ const COLORS: Record<SoundKind, string> = { sfx: "#7A8B99", music: "#5B7A9A", vo
 export type SoundClip = {
   id: string; label: string; kind: SoundKind; start: number; frames: number; url: string; src: string;
   volume: number; muted: boolean; repeat: number; every: number; added: boolean; shift: number; natural: number;
-  trimStart: number; duration: number | null; locked: boolean; fileFrames: number;
-  defaults: { shift: number; volume: number; muted: boolean; src: string; trimStart: number; duration: number | null; locked: boolean };
+  trimStart: number; duration: number | null; locked: boolean; fileFrames: number; speed: number;
+  defaults: { shift: number; volume: number; muted: boolean; src: string; trimStart: number; duration: number | null; locked: boolean; speed?: number };
 };
 
 export const useSoundClips = (): SoundClip[] => {
@@ -45,9 +45,11 @@ export const useSoundClips = (): SoundClip[] => {
       const fileFrames = info ? Math.max(1, Math.round(info.duration * def.fps)) : 12;
       const trimStart = o.trimStart ?? l?.trimStart ?? s.defaults.trimStart ?? 0;
       const duration = o.duration === undefined ? (l?.duration ?? s.defaults.duration ?? null) : o.duration;
-      const one = Math.max(1, duration ?? (fileFrames - trimStart));
+      const speed = Math.max(0.1, o.speed ?? l?.speed ?? s.defaults.speed ?? 1);
+      // `duration` is in timeline frames; the natural length of the file shrinks with speed
+      const one = Math.max(1, duration ?? Math.round((fileFrames - trimStart) / speed));
       const frames = (s.repeat - 1) * s.every + one;
-      out.push({ id: s.id, label: o.label ?? s.label, kind: (o.kind ?? s.kind) as SoundKind, start: natural + shift, frames, url, src, volume: o.volume ?? l?.volume ?? s.defaults.volume, muted: o.muted ?? l?.muted ?? s.defaults.muted, repeat: s.repeat, every: s.every, added: s.added, shift, natural, trimStart, duration, locked: o.locked ?? l?.locked ?? s.defaults.locked ?? false, fileFrames, defaults: s.defaults });
+      out.push({ id: s.id, label: o.label ?? s.label, kind: (o.kind ?? s.kind) as SoundKind, start: natural + shift, frames, url, src, volume: o.volume ?? l?.volume ?? s.defaults.volume, muted: o.muted ?? l?.muted ?? s.defaults.muted, repeat: s.repeat, every: s.every, added: s.added, shift, natural, trimStart, duration, locked: o.locked ?? l?.locked ?? s.defaults.locked ?? false, fileFrames, speed, defaults: s.defaults });
     }
     const sorted = out.sort((a, b) => a.start - b.start);
     setCurrentSoundClips(sorted);
@@ -131,9 +133,9 @@ export const SoundClipView: React.FC<{ c: SoundClip; ppf: number; on: boolean; o
   return (
     <div className={`aclip ${on ? "on" : ""} ${c.muted ? "muted" : ""} ${c.locked ? "locked" : ""}`} data-clip-id={c.id} data-clip-kind="snd" style={{ left: c.start * ppf, width: Math.max(6, c.frames * ppf - 1), top: 3, height: row - 6, ["--clip" as any]: color }}
       onPointerDown={onPointerDown} onContextMenu={onCtx} onMouseEnter={() => store().setHover(null)}
-      title={`${c.label} · ${c.src} · starts f${c.start} · ${(c.frames / def.fps).toFixed(2)}s · vol ${Math.round(c.volume * 100)}%${c.muted ? " · muted" : ""}${c.locked ? " · locked" : ""}${c.shift ? ` · shift ${c.shift}` : ""}${c.trimStart ? ` · trim ${c.trimStart}f` : ""} — drag to move · edges trim · right-click for more`}>
-      <Wave url={c.url} color={color} frames={c.frames} fps={def.fps} repeat={c.repeat} every={c.every} trimStart={c.trimStart} />
-      {c.frames * ppf > 46 && <span className="alabel">{c.locked && <span className="lk"><Lock /></span>}{c.label}<span className="avol">{Math.round(c.volume * 100)}%</span>{c.shift !== 0 && <span className="delay">{c.shift > 0 ? "+" : ""}{c.shift}f</span>}</span>}
+      title={`${c.label} · ${c.src} · starts f${c.start} · ${(c.frames / def.fps).toFixed(2)}s · vol ${Math.round(c.volume * 100)}%${c.speed !== 1 ? ` · ${+c.speed.toFixed(2)}×` : ""}${c.muted ? " · muted" : ""}${c.locked ? " · locked" : ""}${c.shift ? ` · shift ${c.shift}` : ""}${c.trimStart ? ` · trim ${c.trimStart}f` : ""} — drag to move · edges trim · right-click for more`}>
+      <Wave url={c.url} color={color} frames={c.frames * c.speed} fps={def.fps} repeat={c.repeat} every={c.every} trimStart={c.trimStart} />
+      {c.frames * ppf > 46 && <span className="alabel">{c.locked && <span className="lk"><Lock /></span>}{c.label}<span className="avol">{Math.round(c.volume * 100)}%</span>{c.speed !== 1 && <span className="avol">{+c.speed.toFixed(2)}×</span>}{c.shift !== 0 && <span className="delay">{c.shift > 0 ? "+" : ""}{c.shift}f</span>}</span>}
       {c.repeat === 1 && !c.locked && c.frames * ppf >= 28 && <><div className="trim l" onPointerDown={(e) => trim(e, "l")} title="Trim start" /><div className="trim r" onPointerDown={(e) => trim(e, "r")} title="Trim end" /></>}
     </div>
   );

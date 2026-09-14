@@ -10,11 +10,11 @@ import { parse } from "@babel/parser";
 import MagicString from "magic-string";
 
 const CALLS = new Set(["edit", "brand", "useCopy", "useAnim", "useAnimSpec", "useSceneDuration"]);
-const TRANSFORM_KEYS = ["x", "y", "scale", "rotate", "opacity", "hidden", "delay", "trimIn", "trimOut", "locked"];
+const TRANSFORM_KEYS = ["x", "y", "scale", "rotate", "opacity", "hidden", "delay", "trimIn", "trimOut", "locked", "speed"];
 const SOUND_TAGS = new Set(["Sound", "Sfx", "KeyTicks"]);
-const SOUND_KEYS = ["shift", "volume", "muted", "src", "trimStart", "duration", "locked"];
-const SOUND_DEFAULTS = { shift: 0, muted: false, trimStart: 0, locked: false };
-const TRANSFORM_DEFAULTS = { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1, hidden: false, delay: 0, trimIn: 0, trimOut: null, locked: false };
+const SOUND_KEYS = ["shift", "volume", "muted", "src", "trimStart", "duration", "locked", "speed"];
+const SOUND_DEFAULTS = { shift: 0, muted: false, trimStart: 0, locked: false, speed: 1 };
+const TRANSFORM_DEFAULTS = { x: 0, y: 0, scale: 1, rotate: 0, opacity: 1, hidden: false, delay: 0, trimIn: 0, trimOut: null, locked: false, speed: 1 };
 
 export const listSourceFiles = (dir) => {
   const out = [];

@@ -65,6 +65,20 @@ export const EnumField: React.FC<{ value: string; options: string[]; onChange: (
   <select value={value} onChange={(e) => onChange(e.target.value)}>{options.map((o) => <option key={o} value={o}>{o}</option>)}</select>
 );
 
+/** Playback speed: slider 0.25×–4× plus the usual presets. 1× is normal speed. */
+export const SPEED_PRESETS = [0.5, 1, 1.5, 2];
+export const clampSpeed = (v: number) => Math.round(Math.max(0.25, Math.min(4, v)) * 100) / 100;
+export const SpeedField: React.FC<{ value: number; onChange: (v: number, commit?: boolean) => void; hint?: React.ReactNode; mixed?: boolean; style?: React.CSSProperties }> = ({ value, onChange, hint, mixed, style }) => (
+  <div className="field" style={{ marginTop: 8, ...style }}>
+    <label>Speed{mixed && <span className="mixed" title="Values differ across the selection">Mixed</span>}<span className="val">{+value.toFixed(2)}×</span></label>
+    <NumberField value={value} min={0.25} max={4} step={0.05} unit="×" slider onChange={(v, c) => onChange(clampSpeed(v), c)} />
+    <div className="tabs" style={{ marginTop: 6 }}>
+      {SPEED_PRESETS.map((p) => <button key={p} className={Math.abs(value - p) < 1e-9 ? "on" : ""} onClick={() => onChange(p)} title={p === 1 ? "Normal speed" : `${p}× speed`}>{p}×</button>)}
+    </div>
+    {hint && <div className="hint" style={{ padding: "6px 0 0" }}>{hint}</div>}
+  </div>
+);
+
 // ---- generic prop control ---------------------------------------------------
 
 export const PropControl: React.FC<{ kind: EditKind; meta: EditMeta; value: unknown; onChange: (v: unknown, commit?: boolean) => void }> = ({ kind, meta, value, onChange }) => {

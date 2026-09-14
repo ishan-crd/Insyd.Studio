@@ -261,7 +261,7 @@ export const Timeline: React.FC = () => {
     rows.push(<div key={"g" + sc.id} className="trow grp" onPointerDown={trackDown} onContextMenu={(e) => openMenu(e, elementMenu([]))} />);
     if (!open) return;
     els.forEach((e) => {
-      const t = { delay: 0, hidden: false, trimIn: 0, trimOut: null as number | null, locked: false, ...(codeDefaults[e.id] ?? {}), ...(layout.elements[e.id] ?? {}) };
+      const t = { delay: 0, hidden: false, trimIn: 0, trimOut: null as number | null, locked: false, speed: 1, ...(codeDefaults[e.id] ?? {}), ...(layout.elements[e.id] ?? {}) };
       const on = multi.includes(e.id) || (selection?.type === "element" && selection.id === e.id);
       const anims = propsOf(props, e.id, elementIds).filter((p) => p.kind === "anim");
       const len = e.last - e.first + 1;
@@ -284,7 +284,7 @@ export const Timeline: React.FC = () => {
             onMouseEnter={() => store().setHover(e.id)} onMouseLeave={() => store().setHover(null)}
             title={`${e.label} · frames ${clipStart}–${clipStart + clipLen - 1}${t.delay ? ` · shift ${t.delay}` : ""}${t.trimIn || t.trimOut !== null ? ` · window ${t.trimIn}–${winEnd}` : ""}${t.locked ? " · locked" : ""} — drag to move · edges trim · right-click for more`}>
             <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{t.locked && <Lock />}{e.label}</span>
-            {t.delay !== 0 && <span className="delay">{t.delay > 0 ? "+" : ""}{t.delay}f</span>}
+            {(t.speed ?? 1) !== 1 && <span className="delay" title="Speed">{+(t.speed ?? 1).toFixed(2)}×</span>}{t.delay !== 0 && <span className="delay">{t.delay > 0 ? "+" : ""}{t.delay}f</span>}
             {!t.locked && clipLen * ppf >= 28 && <><div className="trim l" onPointerDown={(ev) => trimClip(ev, e.id, "l")} title="Trim start" /><div className="trim r" onPointerDown={(ev) => trimClip(ev, e.id, "r")} title="Trim end" /></>}
             {anims.map((p) => {
               const spec = { ...(p.value as AnimSpec), ...((layout.props[p.id] as AnimSpec | undefined) ?? {}) };

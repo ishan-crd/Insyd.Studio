@@ -3,10 +3,11 @@ import { useStore } from "../state/store";
 import { seconds } from "../lib/format";
 import { seek } from "../lib/player";
 import { useAudioInfo, drawWave } from "../lib/audio";
-import { NumberField, BoolField } from "./Fields";
+import { NumberField, BoolField, SpeedField } from "./Fields";
 import { useSoundClips, SoundPicker } from "./AudioTracks";
 import { Play, Pause } from "../lib/icons";
 import { playPreview, stopPreview, usePreview } from "../lib/preview";
+import { setSoundsSpeed } from "../lib/clips";
 
 export const SoundInspector: React.FC<{ id: string }> = ({ id }) => {
   const def = useStore((s) => s.def)!;
@@ -20,10 +21,10 @@ export const SoundInspector: React.FC<{ id: string }> = ({ id }) => {
   const store = useStore.getState;
   const preview = usePreview();
   const previewing = preview.id === id && preview.playing;
-  useEffect(() => { if (canvas.current && info) drawWave(canvas.current, info, c?.kind === "music" ? "#5B7A9A" : "#7A8B99", c?.trimStart ? c.trimStart / def.fps : 0, c ? c.frames / def.fps : undefined); }, [info, c?.kind, c?.trimStart, c?.frames, def.fps]);
+  useEffect(() => { if (canvas.current && info) drawWave(canvas.current, info, c?.kind === "music" ? "#5B7A9A" : "#7A8B99", c?.trimStart ? c.trimStart / def.fps : 0, c ? (c.frames * c.speed) / def.fps : undefined); }, [info, c?.kind, c?.trimStart, c?.frames, c?.speed, def.fps]);
   useEffect(() => () => stopPreview(), [id]);
   if (!c) return <div className="empty"><b>Sound not found</b>{id}</div>;
-  const listen = () => playPreview(id, c.url, c.trimStart / def.fps, c.repeat > 1 ? undefined : c.frames / def.fps, c.volume);
+  const listen = () => playPreview(id, c.url, c.trimStart / def.fps, c.repeat > 1 ? undefined : (c.frames * c.speed) / def.fps, c.volume, c.speed);
   const o = layout.sounds[id] ?? {};
   const edited = Object.keys(o).length > 0 && !c.added;
   const setStart = (f: number, commit = true) => c.added ? store().setSound(id, { at: Math.max(0, Math.round(f)) }, commit) : store().setSound(id, { shift: Math.round(f) - c.natural }, commit);
@@ -59,6 +60,7 @@ export const SoundInspector: React.FC<{ id: string }> = ({ id }) => {
             ? <div className="field"><label>Shift</label><NumberField unit="f" value={c.shift} step={1} onChange={(v, commit) => store().setSound(id, { shift: Math.round(v) }, commit)} /></div>
             : <div className="field"><label>Length</label><div className="unit"><input readOnly value={seconds(c.frames, def.fps)} /><i>{c.frames}f</i></div></div>}
         </div>
+        <SpeedField value={c.speed} onChange={(v, commit) => setSoundsSpeed([id], v, commit)} hint={`${seconds(c.frames, def.fps)} at ${+c.speed.toFixed(2)}× · pitch follows speed`} />
         <div className="field" style={{ marginTop: 8 }}><label>Muted</label><BoolField value={c.muted} label={["Playing", "Muted"]} onChange={(v) => store().setSound(id, { muted: v })} /></div>
         <button className={`mute-btn ${c.muted ? "on" : ""}`} onClick={() => store().setSound(id, { muted: !c.muted })}>{c.muted ? "Unmute clip" : "Mute clip"}</button>
         <div className="hint">Length {seconds(c.frames, def.fps)} → ends at f{c.start + c.frames}. Sound effects are usually placed 2 frames <i>before</i> the visual they accompany.</div>

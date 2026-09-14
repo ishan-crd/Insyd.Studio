@@ -106,12 +106,25 @@ export const splitSounds = (frame = playhead(), ids = selectedOf("sound")) => {
     const head = frame - c.start;
     sounds[c.id] = { ...(sounds[c.id] ?? {}), duration: head };
     const id = `added.${Date.now().toString(36)}${i}`;
-    sounds[id] = { added: true, src: c.src, at: frame, volume: c.volume, kind: c.kind, label: c.label, trimStart: c.trimStart + head, duration: c.frames - head, muted: c.muted || undefined };
+    sounds[id] = { added: true, src: c.src, at: frame, volume: c.volume, kind: c.kind, label: c.label, trimStart: c.trimStart + Math.round(head * c.speed), duration: c.frames - head, muted: c.muted || undefined, speed: c.speed !== 1 ? c.speed : undefined };
     newIds.push(id);
   });
   useStore.setState({ layout: { ...s.layout, sounds }, selection: { type: "sound", id: newIds[newIds.length - 1] }, multi: newIds });
   s.end();
   toast(`Split ${clips.length} sound${clips.length === 1 ? "" : "s"} at f${frame}`);
+};
+
+/** Change playback speed; a clip with an explicit duration keeps covering the same part of the file. */
+export const setSoundsSpeed = (ids: string[], speed: number, commit = true) => {
+  const s = useStore.getState();
+  const patches: Record<string, SoundOverride> = {};
+  for (const id of ids) {
+    const c = soundClip(id); if (!c) continue;
+    const patch: SoundOverride = { speed };
+    if (c.duration !== null && c.duration !== undefined && c.repeat === 1) patch.duration = Math.max(1, Math.round((c.duration * c.speed) / speed));
+    patches[id] = patch;
+  }
+  s.setSounds(patches, commit);
 };
 
 export const setSoundsLocked = (ids: string[], locked: boolean) => {
@@ -124,8 +137,8 @@ export const trimSound = (c: SoundClip, edge: "l" | "r", deltaFrames: number, co
   const s = useStore.getState();
   const total = c.frames;
   if (edge === "l") {
-    const d = Math.max(-c.trimStart, Math.min(total - 2, deltaFrames));
-    const patch: SoundOverride = { trimStart: c.trimStart + d, duration: total - d, ...(c.added ? { at: Math.max(0, c.natural + d) } : { shift: c.shift + d }) };
+    const d = Math.max(-Math.round(c.trimStart / c.speed), Math.min(total - 2, deltaFrames));
+    const patch: SoundOverride = { trimStart: Math.max(0, Math.round(c.trimStart + d * c.speed)), duration: total - d, ...(c.added ? { at: Math.max(0, c.natural + d) } : { shift: c.shift + d }) };
     s.setSound(c.id, patch, commit);
   } else {
     const d = Math.max(2 - total, deltaFrames);

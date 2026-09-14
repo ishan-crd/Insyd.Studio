@@ -30,7 +30,7 @@ zoom and Fit.
 | | |
 |---|---|
 | **Preview** | Click to select (innermost element wins), drag to move, corner handles to scale, `⇧` constrains, snapping to the canvas centre and to other elements with guides, `⇧`/`⌘`-click and box-select for groups. |
-| **Inspector** | Text · position / scale / rotation / opacity / visibility · timing (shift, visible window) · every `edit()` property (sliders, colour pickers, toggles, enums) · animation editor (delay, spring presets or physics or bezier, from-values, curve preview) · lock. With several items selected, only shared fields show; edits apply to all. |
+| **Inspector** | Text · position / scale / rotation / opacity / visibility · timing (shift, visible window) · **speed** (0.25×–4×: an element's clock runs faster or slower so its animations re-time; a sound plays at that rate and its clip shortens) · every `edit()` property (sliders, colour pickers, toggles, enums) · animation editor (delay, spring presets or physics or bezier, from-values, curve preview) · lock. With several items selected, only shared fields show; edits apply to all. |
 | **Brand** | Global tokens (`brand()`): palette, backgrounds, fonts — change once, every scene follows. |
 | **Sounds** | Every `<Sound>` on the timeline with its waveform (effects in lanes over the music). Click the waveform in the inspector to listen. Volume, mute, trim, start, replace file (from `public/` or upload), `+ Sound` at the playhead. |
 | **Timeline** | Scenes track with filmstrip thumbnails and trimmable scenes · a clip per element with its entrance bar · audio lanes · drag, trim, split at playhead, duplicate (linked copies), copy/cut/paste at playhead, lock, hide/mute, delete · snapping to clips, cuts and the playhead · box selection · context menus · zoom, resize. |
@@ -107,6 +107,7 @@ npm run init <dir>           install the SDK into a project
 node scripts/e2e.mjs         edit → save → source diff → reload (33 checks)
 node scripts/mcp.mjs         a real MCP client drives the editor (24)
 node scripts/claude.mjs      Claude Code hand-off + live reload of external edits (12)
+node scripts/speed.mjs         element time remap + sound playback rate, saved to code (17)
 node scripts/playpause.mjs · multiselect · marquee · groupedit · clips · elclips · audio · snap · shortcuts · thumbs · preview
 node scripts/perf.mjs        main-thread ms/frame during playback
 ```

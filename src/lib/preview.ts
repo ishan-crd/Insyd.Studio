@@ -15,12 +15,13 @@ export const stopPreview = () => {
 };
 
 /** Play `url` from `startSec` for `durationSec` (or to the end) at `volume`, once. */
-export const playPreview = (id: string, url: string, startSec = 0, durationSec?: number, volume = 1) => {
+export const playPreview = (id: string, url: string, startSec = 0, durationSec?: number, volume = 1, speed = 1) => {
   if (usePreview.getState().id === id && usePreview.getState().playing) { stopPreview(); return; }
   stopPreview();
   const el = new Audio(url);
   audio = el;
   el.volume = Math.max(0, Math.min(1, volume));
+  el.playbackRate = Math.max(0.25, Math.min(4, speed)); el.preservesPitch = false;
   el.currentTime = startSec;
   stopAt = durationSec !== undefined ? startSec + durationSec : Infinity;
   const total = durationSec ?? NaN;

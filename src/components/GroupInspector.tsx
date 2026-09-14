@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { useProps, type PropEntry, type SoundOverride } from "@project/sdk";
 import { useStore } from "../state/store";
-import { NumberField, BoolField, PropControl } from "./Fields";
+import { NumberField, BoolField, PropControl, SpeedField } from "./Fields";
 import { useSoundClips, SoundPicker } from "./AudioTracks";
 import { propsOf } from "../lib/owners";
+import { setSoundsSpeed } from "../lib/clips";
 import { Block, Music, Waveform } from "../lib/icons";
 
 // Inspector for a multi-selection: only the fields every selected item shares, with "Mixed"
@@ -66,6 +67,7 @@ export const SoundGroupInspector: React.FC<{ ids: string[]; primary: string }> =
         <div className="section">Timing</div>
         <NudgeRow label="Move all" unit="f" onNudge={(d) => applyAll((c) => (c.added ? { at: Math.max(0, c.natural + d) } : { shift: c.shift + d }))} />
         <div className="hint">Or drag any selected clip in the timeline. Starts range f{Math.min(...sel.map((c) => c.start))}–f{Math.max(...sel.map((c) => c.start))}.</div>
+        <SpeedField value={primaryClip.speed} mixed={!same(sel.map((c) => c.speed))} onChange={(v, commit) => setSoundsSpeed(sel.map((c) => c.id), v, commit)} />
       </div>
       <div className="sect" style={{ position: "relative" }}>
         <div className="section">File</div>
@@ -133,6 +135,7 @@ export const ElementGroupInspector: React.FC<{ ids: string[]; primary: string }>
       <div className="sect">
         <div className="section">Timing</div>
         <NudgeRow label="Shift all" unit="f" onNudge={(d) => applyAll((_, t) => ({ delay: t.delay + d }))} />
+        <SpeedField value={pt.speed ?? 1} mixed={!same(ts.map((x) => x.t.speed ?? 1))} onChange={(v, c) => applyAll(() => ({ speed: v }), c)} />
       </div>
       {shared.length > 0 && (
         <div className="sect" style={{ display: "grid", gap: 8 }}>
