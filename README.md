@@ -87,11 +87,23 @@ export const SCENES = [{ id: "intro", label: "Intro", component: Intro, duration
 <Sequence durationInFrames={sceneDuration(layout, "intro", 90)}><SceneFrame id="intro"><Intro /></SceneFrame></Sequence>   //    SceneFrame lets the editor change the scene's speed
 ```
 
+**Timing like a real editor.** Give every element its own clip: `delay` is where it starts on the
+timeline and `trimOut` its last frame (in its own frames). Inside, time the content with `useClip()`
+— `frame` is 0 at the clip's first frame and `end` is its last — so entrances run from 0 and exits run
+into `end`. Then dragging a clip moves its whole animation, and trimming its edge moves its exit.
+
+```tsx
+<Editable id="hook.title" label="Title" kind="text" delay={62} trimOut={37}>   // on screen f62–f99
+  <Title text={useCopy("hook.title", "Launch day happens once.")} anim={useAnimSpec("hook.title.in", { preset: "bezier", duration: 14 })} />
+</Editable>
+const Title = ({ text, anim }) => { const { frame, end } = useClip(); /* entrance from 0, exit into end */ };
+```
+
 Rules: defaults are **literals** in the source (that is what Save rewrites); ids are dotted
 `scene.element.prop` (a prop whose id starts with an element id belongs to that element; `brand.*` is
 global); the composition takes `{ layout }` and wraps its tree in `<LayoutProvider layout={layout}>`;
-`src/editor.ts` exports `defineProject({...})`. `~/Desktop/thumb-launch-wannabe` and
-`~/superconductor/projects/thumb-mcp/video` are complete examples.
+`src/editor.ts` exports `defineProject({...})`. [`templates/studio-launch`](templates/studio-launch)
+is a complete example: every text, texture, pointer, panel and sound is its own clip.
 
 ## How it works
 

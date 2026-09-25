@@ -142,12 +142,13 @@ export const Inspector: React.FC = () => {
             <div className="sect">
               <div className="section">Timing</div>
               <div className="grid2">
-                <div className="field"><label>Shift</label><NumberField unit="f" value={t.delay} step={1} onChange={(d, c) => upd({ delay: Math.round(d) }, c)} /></div>
+                {/* Start moves the clip (its animation moves with it); End trims its last frame. */}
+                <div className="field"><label>Starts at<span className="val">{seconds(from, def.fps)}</span></label><NumberField unit="f" value={from} step={1} onChange={(v, c) => upd({ delay: Math.round(v) - (meta?.first ?? 0) - t.trimIn }, c)} /></div>
+                <div className="field"><label>Ends at<span className="val">{seconds(from + winLen, def.fps)}</span></label><NumberField unit="f" value={from + winLen - 1} step={1} onChange={(v, c) => upd({ trimOut: Math.max(t.trimIn, Math.round(v) - (meta?.first ?? 0) - t.delay) }, c)} /></div>
                 <div className="field"><label>Length</label><div className="unit"><input readOnly value={seconds(winLen, def.fps)} /><i>{winLen}f</i></div></div>
-                <div className="field"><label>Visible from</label><NumberField unit="f" value={t.trimIn} step={1} min={0} onChange={(v, c) => upd({ trimIn: Math.max(0, Math.round(v)) }, c)} /></div>
-                <div className="field"><label>To</label><NumberField unit="f" value={t.trimOut ?? (meta ? meta.last - meta.first : 0)} step={1} onChange={(v, c) => upd({ trimOut: Math.round(v) }, c)} /></div>
+                <div className="field"><label>Trim start</label><NumberField unit="f" value={t.trimIn} step={1} min={0} onChange={(v, c) => upd({ trimIn: Math.max(0, Math.round(v)) }, c)} /></div>
               </div>
-              {meta && <div className="hint">On screen from frame {from} to {from + winLen - 1}. Positive shift = later; the visible window is in the element's own frames.</div>}
+              {meta && <div className="hint">On screen from frame {from} to {from + winLen - 1}. Drag the clip in the timeline to move it, or its edges to trim.</div>}
               <SpeedField value={t.speed ?? 1} onChange={(v, c) => upd({ speed: v }, c)} hint={t.speed && t.speed !== 1 ? `Its animations and any Sequences inside run ${+t.speed.toFixed(2)}× ${t.speed > 1 ? "faster" : "slower"}; the visible window stays the same.` : "Runs the element's own clock faster or slower — its entrance and everything animated inside."} />
             </div>
             <PropGroups props={plain} />

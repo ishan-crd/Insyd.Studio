@@ -83,6 +83,21 @@ const LayoutContext = createContext<Layout>(emptyLayout());
 export type Channel = "main" | "scan";
 const EditorModeContext = createContext<Channel | null>(null);
 const OwnerContext = createContext<string | null>(null);
+/** The transform of the nearest <Editable>, so its contents can time themselves to the clip. */
+const ClipContext = createContext<ElementTransform | null>(null);
+
+/**
+ * The clip clock of the nearest <Editable>: `frame` is the element's own frame (0 = the moment its
+ * clip starts on the timeline — `delay` already applied), `end` is the last frame of its visibility
+ * window (`trimOut`, or Infinity when open-ended). Build entrances from frame 0 and exits against
+ * `end`, and the animation follows the clip when it is moved or trimmed in the timeline.
+ */
+export const useClip = () => {
+  const t = useContext(ClipContext);
+  const frame = useCurrentFrame();
+  const end = t && t.trimOut !== null && t.trimOut !== undefined ? t.trimOut : Infinity;
+  return { frame, start: t?.trimIn ?? 0, end, left: end - frame };
+};
 
 // brand() is called from plain code (theme getters), so overrides also live in a module variable
 // that LayoutProvider refreshes synchronously during render — before any child renders.
@@ -465,7 +480,8 @@ const EditableBody: React.FC<{
   useLayoutEffect(() => () => { if (channel) registry.removeElement(id, channel); }, [channel, id]);
 
   const gone = !inWindow || (t.hidden && !editor);
-  const body = t.speed && t.speed !== 1 ? <TimeScale speed={t.speed}>{children}</TimeScale> : children;
+  const inner = <ClipContext.Provider value={t}>{children}</ClipContext.Provider>;
+  const body = t.speed && t.speed !== 1 ? <TimeScale speed={t.speed}>{inner}</TimeScale> : inner;
   return (
     <div
       ref={ref}

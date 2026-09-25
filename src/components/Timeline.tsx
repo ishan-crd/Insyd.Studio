@@ -295,9 +295,9 @@ export const Timeline: React.FC = () => {
             style={{ left: clipStart * ppf, width: Math.max(6, clipLen * ppf - 1), ["--clip" as any]: sceneColor(sc.index) }}
             onPointerDown={(ev) => dragClip(ev, e.id, e.first, e.last)} onContextMenu={(ev) => ctxElement(ev, e.id)}
             onMouseEnter={() => store().setHover(e.id)} onMouseLeave={() => store().setHover(null)}
-            title={`${e.label} · frames ${clipStart}–${clipStart + clipLen - 1}${t.delay ? ` · shift ${t.delay}` : ""}${t.trimIn || t.trimOut !== null ? ` · window ${t.trimIn}–${winEnd}` : ""}${t.locked ? " · locked" : ""} — drag to move · edges trim · right-click for more`}>
+            title={`${e.label} · frames ${clipStart}–${clipStart + clipLen - 1}${t.trimIn || t.trimOut !== null ? ` · window ${t.trimIn}–${winEnd}` : ""}${t.locked ? " · locked" : ""} — drag to move · edges trim · right-click for more`}>
             <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{t.locked && <Lock />}{e.label}</span>
-            {(t.speed ?? 1) !== 1 && <span className="delay" title="Speed">{+(t.speed ?? 1).toFixed(2)}×</span>}{t.delay !== 0 && <span className="delay">{t.delay > 0 ? "+" : ""}{t.delay}f</span>}
+            {(t.speed ?? 1) !== 1 && <span className="delay" title="Speed">{+(t.speed ?? 1).toFixed(2)}×</span>}{(() => { const moved = t.delay - (codeDefaults[e.id]?.delay ?? 0); return moved !== 0 ? <span className="delay" title="Moved from its position in the code">{moved > 0 ? "+" : ""}{moved}f</span> : null; })()}
             {!t.locked && clipLen * ppf >= 28 && <><div className="trim l" onPointerDown={(ev) => trimClip(ev, e.id, "l")} title="Trim start" /><div className="trim r" onPointerDown={(ev) => trimClip(ev, e.id, "r")} title="Trim end" /></>}
             {anims.map((p) => {
               const spec = { ...(p.value as AnimSpec), ...((layout.props[p.id] as AnimSpec | undefined) ?? {}) };

@@ -6,7 +6,7 @@ import type { PropEntry } from "@project/sdk";
 export const resolveOwner = (p: PropEntry, elementIds: Iterable<string>): string => {
   if (p.owner === "brand" || !p.owner.startsWith("scene:")) return p.owner;
   let best = "";
-  for (const id of elementIds) if (p.id.startsWith(id + ".") && id.length > best.length) best = id;
+  for (const id of elementIds) if ((p.id === id || p.id.startsWith(id + ".")) && id.length > best.length) best = id;
   return best || p.owner;
 };
 

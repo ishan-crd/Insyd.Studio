@@ -3,7 +3,7 @@ import { AbsoluteFill, Composition, Sequence } from "remotion";
 import "./fonts";
 import { FPS } from "./theme";
 import { Grain, Vignette, Scanlines, GlitchCut } from "./components/Layers";
-import { LayoutProvider, LayoutSounds, SceneFrame, Sound, sceneDuration, type Layout, type SceneDef } from "./insyd";
+import { Editable, LayoutProvider, LayoutSounds, SceneFrame, Sound, edit, sceneDuration, type Layout, type SceneDef } from "./insyd";
 import savedLayout from "../layout.json";
 import { SceneHook } from "./scenes/SceneHook";
 import { SceneWithout } from "./scenes/SceneWithout";
@@ -54,9 +54,10 @@ export const Launch: React.FC<LaunchProps> = ({ layout }) => {
             </Sequence>
           );
         })}
-        <Scanlines />
-        <Vignette />
-        <Grain />
+        {/* Finishing layers — clips on the timeline like everything else (click-through on the canvas) */}
+        <Editable id="film.scanlines" label="Scanlines" display="fill" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}><Scanlines /></Editable>
+        <Editable id="film.vignette" label="Vignette" display="fill" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}><Vignette strength={edit("film.vignette.strength", 0.75, { label: "Strength", min: 0, max: 1, step: 0.05 })} /></Editable>
+        <Editable id="film.grain" label="Film grain" display="fill" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}><Grain amount={edit("film.grain.amount", 0.08, { label: "Amount", min: 0, max: 0.4, step: 0.01 })} /></Editable>
         {cuts.map((c) => <Sequence key={c} from={c - 3} durationInFrames={6} name="glitch cut" layout="none"><GlitchCut /></Sequence>)}
         {/* The score, and any sounds added in the editor */}
         <Sound id="music.score" label="Score — dark pulse (120 BPM)" kind="music" src="music/score.wav" at={0} volume={0.85} duration={1740} fadeOut={20} />
