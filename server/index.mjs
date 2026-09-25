@@ -129,7 +129,11 @@ app.get("/api/index", (_req, res) => {
   if (!dir) return res.status(400).json({ error: "No project open" });
   const { byLocator, files } = buildIndex(dir);
   res.json({
-    locators: Object.fromEntries([...byLocator.entries()].map(([k, e]) => [k, { file: path.relative(dir, e.file), literal: e.literal ?? true }])),
+    // `values`: the literal transform attributes of an <Editable> as written in the code (so the editor
+    // can check restored drafts against the code before every element has rendered)
+    locators: Object.fromEntries([...byLocator.entries()].map(([k, e]) => [k, { file: path.relative(dir, e.file), literal: e.literal ?? true,
+      ...(k.startsWith("jsx:") && e.attrs ? { values: Object.fromEntries(Object.entries(e.attrs).filter(([, a]) => a.value !== undefined).map(([n, a]) => [n, a.value])) } : {}),
+      ...(k.startsWith("call:") && e.literal ? { value: e.value } : {}) }])),
     errors: files.filter((f) => f.error).map((f) => ({ file: path.relative(dir, f.file), error: f.error })),
   });
 });

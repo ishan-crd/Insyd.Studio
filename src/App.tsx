@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import def from "@project/editor";
 import { useStore } from "./state/store";
 import { api } from "./lib/api";
-import { loadDraft, saveDraft, popSession } from "./lib/persist";
+import { loadDraft, saveDraft, popSession, reconcileDraft } from "./lib/persist";
 import { playerRef } from "./lib/player";
 import { registry } from "@project/sdk";
 import { ensureThumbs } from "./lib/thumbs";
@@ -32,11 +32,12 @@ export const App: React.FC = () => {
     if (!d) return;
     (async () => {
       const saved = await api.loadLayout(d.layoutFile).catch(() => null);
-      const draft = loadDraft();
+      const restored = loadDraft();
+      const draft = restored?.layout ?? null;
       useStore.getState().init(d, saved, draft);
       const n = draft ? (Object.values(draft) as unknown[]).filter((v) => v && typeof v === "object").reduce<number>((a, v) => a + Object.keys(v as object).length, 0) : 0;
       if (n) useStore.getState().setToast(`Restored ${n} unsaved change${n === 1 ? "" : "s"}`);
-      api.index().then((i) => { useStore.getState().setIndex(i); noteInventory(Object.keys(i.locators)); }).catch(() => {});
+      api.index().then((i) => { useStore.getState().setIndex(i); noteInventory(Object.keys(i.locators)); reconcileDraft(); }).catch(() => {});
       setTimeout(ensureThumbs, 1500);
       connectBridge();
       // restore UI state after a save-reload
@@ -59,9 +60,11 @@ export const App: React.FC = () => {
         if (JSON.stringify(next[e.id]) !== JSON.stringify(e.defaults)) { next[e.id] = e.defaults; changed = true; }
       }
       if (changed) s.setCodeDefaults(next);
+      reconcileDraft();
     };
     const a = registry.subscribeElements(sync, "main"), b = registry.subscribeElements(sync, "scan");
-    return () => { a(); b(); };
+    const c = registry.subscribeProps(reconcileDraft);
+    return () => { a(); b(); c(); };
   }, []);
 
   // keep the unsaved draft in localStorage

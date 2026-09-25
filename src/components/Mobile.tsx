@@ -3,7 +3,7 @@ import { useStore, sceneAt } from "../state/store";
 import { usePlayback } from "../state/playback";
 import { playerRef, seek } from "../lib/player";
 import { timecode } from "../lib/format";
-import { saveToCode } from "../lib/persist";
+import { saveToCode, discardDraft } from "../lib/persist";
 import { copyClaudePrompt } from "../lib/claude";
 import { scanProject } from "../lib/scan";
 import { useTheme } from "../lib/theme";
@@ -100,6 +100,7 @@ const MoreSheet: React.FC<{ onClose: () => void; onClaude: () => void }> = ({ on
         <h2>More</h2>
         <div className="m-group">Project</div>
         <Row icon={<Save />} label="Save to source" detail={saving ? "Saving…" : dirty ? `${pendingCount} change${pendingCount === 1 ? "" : "s"}` : "up to date"} disabled={!dirty || saving} onClick={then(() => { saveToCode(); })} />
+        <Row icon={<Undo />} label="Discard unsaved changes" disabled={!dirty || saving} onClick={then(() => discardDraft())} />
         <Row icon={<span style={{ color: "var(--claude)", display: "inline-grid" }}><ClaudeMark /></span>} label="Open in Claude Code" detail="MCP" onClick={() => { onClose(); onClaude(); }} />
         <Row icon={<Copy />} label="Copy prompt" detail="no MCP" onClick={then(() => { copyClaudePrompt(); })} />
         <Row icon={<Refresh />} label="Rescan project" detail={scan.status === "running" ? `${Math.round(scan.progress * 100)}%` : ""} disabled={scan.status === "running"} onClick={then(() => scanProject(3, true))} />

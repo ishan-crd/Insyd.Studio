@@ -7,7 +7,7 @@ export type ScanElement = { id: string; label: string; kind: ElementKind; first:
 /** a sound discovered by the scan, at its natural (unshifted) absolute start */
 export type ScanSound = { id: string; label: string; kind: SoundKind; natural: number; repeat: number; every: number; defaults: { shift: number; volume: number; muted: boolean; src: string; trimStart: number; duration: number | null; locked: boolean; speed?: number }; added: boolean };
 export type SceneSpan = { id: string; label: string; from: number; duration: number; index: number };
-export type CodeIndex = { locators: Record<string, { file: string; literal: boolean }> };
+export type CodeIndex = { locators: Record<string, { file: string; literal: boolean; values?: Record<string, unknown>; value?: unknown }> };
 
 type State = {
   def: ProjectDefinition<any> | null;

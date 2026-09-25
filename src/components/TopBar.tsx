@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useStore } from "../state/store";
-import { saveToCode } from "../lib/persist";
+import { saveToCode, discardDraft } from "../lib/persist";
 import { Export, Redo, Undo, ClaudeMark, Copy, Keyboard, Sun, Moon, ChevronDown } from "../lib/icons";
 import { copyClaudePrompt } from "../lib/claude";
 import { ClaudeDialog } from "./ClaudeDialog";
@@ -45,6 +45,7 @@ export const TopBar: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {
       {claude && <ClaudeDialog onClose={() => setClaude(false)} />}
       <button className="btn icon" title="Keyboard shortcuts (?)" onClick={() => useShortcuts.getState().set(true)}><Keyboard /></button>
       <button className="btn icon" title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} onClick={() => useTheme.getState().toggle()}>{theme === "dark" ? <Sun /> : <Moon />}</button>
+      {dirty && !saving && <button className="btn ghost" title="Throw away unsaved changes and go back to the code (undoable)" onClick={discardDraft}>Discard</button>}
       <button className="btn" onClick={saveLayout} disabled={!dirty || saving} title="Write changes into the project's source files (⌘S)">{saving ? "Saving…" : "Save"}{pendingCount > 0 && !saving && <span className="count">{pendingCount}</span>}</button>
       <button className="btn primary" onClick={() => setExp(true)}><Export /> Export</button>
       {exp && <ExportDialog onClose={() => setExp(false)} />}

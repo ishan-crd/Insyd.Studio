@@ -16,7 +16,7 @@ export const api = {
   close: () => post<{ ok: true }>("/api/project/close"),
   loadLayout: (file: string) => fetch(`/api/layout?file=${encodeURIComponent(file)}`).then((r) => j<any>(r)),
   saveLayout: (file: string, layout: unknown) => post<{ ok: true; file: string }>("/api/layout", { file, layout }),
-  index: () => fetch("/api/index").then((r) => j<{ locators: Record<string, { file: string; literal: boolean }>; errors: { file: string; error: string }[] }>(r)),
+  index: () => fetch("/api/index").then((r) => j<{ locators: Record<string, { file: string; literal: boolean; values?: Record<string, unknown>; value?: unknown }>; errors: { file: string; error: string }[] }>(r)),
   apply: (layout: unknown, layoutFile: string) => post<{ ok: true; changed: string[]; unresolved: Record<string, Record<string, unknown>>; fallback: any }>("/api/apply", { layout, layoutFile }),
   render: (body: { compositionId: string; entryPoint: string; inputProps: unknown; fileName: string; crf: number }) =>
     post<{ id: string; outputLocation: string }>("/api/render", body),
