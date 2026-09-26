@@ -9,7 +9,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROME || un
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const errors = []; page.on("pageerror", (e) => errors.push(e.message));
 const results = []; const check = (n, ok, info = "") => { results.push(ok); console.log(`${ok ? "✓" : "✗"} ${n}${info ? " — " + info : ""}`); };
-await page.goto("http://localhost:4321/", { waitUntil: "networkidle" });
+await page.goto("http://localhost:4321/studio", { waitUntil: "networkidle" });
 await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done", null, { timeout: 240000 });
 await page.waitForTimeout(1500);
 const S = () => page.evaluate(() => window.__insydStore.getState());

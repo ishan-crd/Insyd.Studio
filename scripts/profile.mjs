@@ -3,7 +3,7 @@ import { chromium } from "playwright";
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined });
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const cdp = await page.context().newCDPSession(page);
-await page.goto("http://localhost:4321/" + (process.env.Q || "?bare=1&noeditor=1"), { waitUntil: "networkidle" });
+await page.goto("http://localhost:4321/studio" + (process.env.Q || "?bare=1&noeditor=1"), { waitUntil: "networkidle" });
 await page.waitForFunction(() => !!window.__insydPlayer, null, { timeout: 120000 });
 await page.waitForFunction(() => { const s = window.__insydStore?.getState(); return !s || s.scan.status !== "running"; }, null, { timeout: 120000 });
 const start = Number(process.env.F || 0);

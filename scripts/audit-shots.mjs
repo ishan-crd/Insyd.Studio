@@ -3,7 +3,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROME || un
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1 });
 const errors = []; page.on("pageerror", (e) => errors.push(e.message)); page.on("console", (m) => { if (m.type() === "error") errors.push(m.text().slice(0, 160)); });
 const shot = (n, opts = {}) => page.screenshot({ path: `.insyd/shots/audit-${n}.png`, ...opts });
-await page.goto("http://localhost:4321/", { waitUntil: "networkidle" });
+await page.goto("http://localhost:4321/studio", { waitUntil: "networkidle" });
 await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done", null, { timeout: 240000 });
 await page.waitForFunction(() => document.querySelectorAll(".sblock.film img").length > 0, null, { timeout: 120000 }).catch(() => {});
 await page.waitForTimeout(1500);

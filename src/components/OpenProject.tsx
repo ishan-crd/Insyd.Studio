@@ -42,6 +42,7 @@ export const OpenProject: React.FC<{ onCancel?: () => void }> = ({ onCancel }) =
     <div className="welcome">
       <div className="card">
         <h1><span className="brand"><span>Open a project</span></span>{onCancel && <button className="btn ghost icon" style={{ marginLeft: "auto" }} onClick={onCancel} title="Back to the editor"><Close /></button>}</h1>
+        <a className="callout" href="/" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", textDecoration: "none", marginBottom: 14 }}><span><b>Start from a template</b> — launch videos ready to make yours</span><span>Browse →</span></a>
         <p>Point Studio by Insyd at any Remotion project folder. It needs the Studio SDK (<code>src/insyd</code>) and an editor entry (<code>src/editor.ts</code>) — both can be installed from here.</p>
         <div className="pathbox">
           <input placeholder="/path/to/remotion-project" value={path} onChange={(e) => setPath(e.target.value)} onKeyDown={(e) => e.key === "Enter" && info?.ready && open()} />

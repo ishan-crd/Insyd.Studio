@@ -6,7 +6,7 @@ const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const errors = []; page.on("pageerror", (e) => errors.push(e.message));
 let pass = 0, fail = 0;
 const check = (c, m) => { if (c) pass++; else { fail++; console.log("  ✗", m); } };
-await page.goto("http://localhost:4321/", { waitUntil: "load", timeout: 180000 });
+await page.goto("http://localhost:4321/studio", { waitUntil: "load", timeout: 180000 });
 await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done", null, { timeout: 600000 });
 const clips = () => page.evaluate(() => {
   const s = window.__insydStore.getState();

@@ -13,7 +13,7 @@ const clipBoxInView = async (sel) => {
 };
 const release = async (holdAlt = false) => { if (holdAlt) await page.keyboard.up("Alt"); await page.mouse.up(); await page.waitForTimeout(150); };
 
-await page.goto("http://localhost:4321/", { waitUntil: "networkidle" });
+await page.goto("http://localhost:4321/studio", { waitUntil: "networkidle" });
 await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done", null, { timeout: 240000 });
 await page.waitForTimeout(2000);
 await page.evaluate(() => { document.querySelector(".app").style.setProperty("--tl-h", "440px"); window.__insydStore.getState().setZoom(4); }); await page.waitForTimeout(300);

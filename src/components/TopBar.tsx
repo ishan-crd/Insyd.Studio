@@ -11,7 +11,7 @@ import { useTheme } from "../lib/theme";
 export const saveLayout = saveToCode;
 
 export const Brand: React.FC = () => (
-  <div className="brand" title="Studio by Insyd"><span className="name">Studio</span><span className="by">by Insyd</span></div>
+  <a className="brand" href="/" title="Templates — Studio by Insyd"><span className="name">Studio</span><span className="by">by Insyd</span></a>
 );
 
 export const TopBar: React.FC<{ onOpen: () => void }> = ({ onOpen }) => {

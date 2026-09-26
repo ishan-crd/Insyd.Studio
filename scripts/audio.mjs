@@ -14,7 +14,7 @@ const S = () => page.evaluate(() => { const s = window.__insydStore.getState(); 
 const dragMouse = async (x0, y0, x1, y1, steps = 8) => { await page.mouse.move(x0, y0); await page.mouse.down(); for (let i = 1; i <= steps; i++) await page.mouse.move(x0 + (x1 - x0) * i / steps, y0 + (y1 - y0) * i / steps); await page.mouse.up(); await page.waitForTimeout(150); };
 const clipBox = async (id) => { const c = await page.$(`.aclip[title^="${id}"]`); return c ? c.boundingBox() : null; };
 
-await page.goto("http://localhost:4321/", { waitUntil: "networkidle" });
+await page.goto("http://localhost:4321/studio", { waitUntil: "networkidle" });
 await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done", null, { timeout: 240000 });
 await page.waitForTimeout(2500);
 let s = await S();

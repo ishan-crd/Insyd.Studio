@@ -1,0 +1,152 @@
+{
+  "title": "thumb MCP",
+  "tagline": "Warm, playful and beat-cut: a pixel mascot, a pill carousel and on-device demos for a developer tool.",
+  "description": "The launch film for thumb, the open-source iPhone MCP for Claude. A pixel-art thumb mascot, a carousel of things to ask Claude, search and Figma demos on a phone, a settings walkthrough and an install command — every scene starts on a downbeat of the track, with the effects mixed over it. Built for developer tools and AI products that want to feel friendly rather than corporate.",
+  "category": "Developer tools",
+  "tags": [
+    "Light",
+    "Playful",
+    "Pixel art",
+    "Beat-synced",
+    "Developer tool"
+  ],
+  "author": "Insyd",
+  "music": "\"Wannabe\" — a licensed commercial track; replace it before publishing your video",
+  "posterFrame": 1450,
+  "order": 2,
+  "compositionId": "ThumbLaunch",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "durationInFrames": 1522,
+  "scenes": [
+    {
+      "id": "logo",
+      "label": "Logo sting",
+      "frames": 164
+    },
+    {
+      "id": "meet",
+      "label": "Meet the thumb",
+      "frames": 66
+    },
+    {
+      "id": "pills",
+      "label": "Ask Claude to…",
+      "frames": 179
+    },
+    {
+      "id": "control",
+      "label": "Control your iPhone",
+      "frames": 66
+    },
+    {
+      "id": "search",
+      "label": "Search demo",
+      "frames": 195
+    },
+    {
+      "id": "ship",
+      "label": "Build faster",
+      "frames": 65
+    },
+    {
+      "id": "figma",
+      "label": "Figma match",
+      "frames": 289
+    },
+    {
+      "id": "no",
+      "label": "No jailbreak",
+      "frames": 82
+    },
+    {
+      "id": "yellow",
+      "label": "Settings demo",
+      "frames": 88
+    },
+    {
+      "id": "cta",
+      "label": "Call to action",
+      "frames": 92
+    },
+    {
+      "id": "end",
+      "label": "End card",
+      "frames": 236
+    }
+  ],
+  "counts": {
+    "clips": 31,
+    "sounds": 93,
+    "values": 71,
+    "brand": 17
+  },
+  "palette": [
+    {
+      "name": "Paper",
+      "value": "#F4F2ED"
+    },
+    {
+      "name": "Paper alt",
+      "value": "#EAE7E0"
+    },
+    {
+      "name": "Ink",
+      "value": "#16151A"
+    },
+    {
+      "name": "Ink dim",
+      "value": "#6F6B65"
+    },
+    {
+      "name": "Ink faint",
+      "value": "#B9B4AC"
+    },
+    {
+      "name": "Hero (coral)",
+      "value": "#E9573F"
+    },
+    {
+      "name": "Hero deep",
+      "value": "#C9402A"
+    },
+    {
+      "name": "Blue",
+      "value": "#2B6BF3"
+    },
+    {
+      "name": "Yellow",
+      "value": "#F5B324"
+    },
+    {
+      "name": "Pink (nail)",
+      "value": "#F7B9C3"
+    },
+    {
+      "name": "Skin",
+      "value": "#F9B78F"
+    },
+    {
+      "name": "Pixel outline",
+      "value": "#6E3229"
+    },
+    {
+      "name": "Cream",
+      "value": "#FFF9F0"
+    },
+    {
+      "name": "Card",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "Dev build blue",
+      "value": "#3B82F6"
+    }
+  ],
+  "fonts": [
+    "Inter Tight"
+  ],
+  "hash": "a5fbc9dbcf9d2c0d",
+  "generatedAt": "2026-09-26T09:16:47.949Z"
+}

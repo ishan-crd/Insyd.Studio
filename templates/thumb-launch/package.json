@@ -1,0 +1,21 @@
+{
+  "name": "thumb-launch",
+  "private": true,
+  "version": "0.1.0",
+  "description": "thumb MCP launch film cut to a 112 BPM track — a Studio by Insyd template",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts ThumbLaunch out/thumb-launch.mp4 --codec h264 --crf 16",
+    "sfx": "node scripts/make-sfx.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.524",
+    "@remotion/google-fonts": "^4.0.524",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.524",
+    "typescript": "^7.0.2"
+  }
+}

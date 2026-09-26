@@ -16,6 +16,7 @@ import { buildIndex, applyLayout } from "./codemod.mjs";
 import { buildBrief, writeClaudeMd } from "./context.mjs";
 import { attachBridge, bridge } from "./bridge.mjs";
 import { mountMcp } from "./mcp.mjs";
+import { mountTemplates, processedThumbs, sourceHash, STUDIO_DIR } from "./templates.mjs";
 
 const exec = promisify(execFile);
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -88,19 +89,23 @@ app.post("/api/project/init", async (req, res) => {
 });
 
 let vite;
-app.post("/api/project/open", async (req, res) => {
-  const dir = req.body.path;
-  const info = describeProject(dir);
-  if (!info.ready) return res.status(400).json({ error: "Project is not ready", info });
+const openProject = (dir) => {
   const s = readState();
   s.path = dir;
   s.recent = [dir, ...(s.recent ?? []).filter((p) => p !== dir)].slice(0, 8);
   writeState(s);
   process.env.INSYD_PROJECT = dir;
-  res.json({ ok: true, info });
   // Restart Vite so the @project alias points at the new folder.
   setTimeout(() => vite?.restart().catch((e) => console.error("[insyd] vite restart failed", e)), 50);
+};
+app.post("/api/project/open", async (req, res) => {
+  const dir = req.body.path;
+  const info = describeProject(dir);
+  if (!info.ready) return res.status(400).json({ error: "Project is not ready", info });
+  openProject(dir);
+  res.json({ ok: true, info });
 });
+mountTemplates(app, { root: ROOT, getProject: () => process.env.INSYD_PROJECT || null, openProject });
 
 app.post("/api/project/close", async (_req, res) => {
   const s = readState(); s.path = null; writeState(s);
@@ -263,26 +268,21 @@ app.post("/api/audio/upload", async (req, res) => {
 });
 
 // ---------- filmstrip thumbnails ----------
-// One background renderFrames pass (every Nth frame, thumbnail scale) per project state, cached under
-// .insyd/thumbs/<project>/<key>/. The key changes when the source, public assets or layout.json change.
+// One background renderFrames pass (every Nth frame, thumbnail scale) per project state, written into the
+// project's .studio/thumbs/ and keyed by a content hash of src/, public/ and layout.json — so a template
+// ships with them and any edit makes a fresh set.
 const THUMB_W = 160;
 const thumbJobs = new Map(); // key -> { status, progress, error }
-const slugOf = (dir) => path.basename(dir).replace(/[^\w.-]+/g, "_") + "-" + crypto.createHash("md5").update(dir).digest("hex").slice(0, 6);
-const thumbKey = (dir, layoutFile) => {
-  let lm = 0; try { lm = fs.statSync(path.join(dir, layoutFile)).mtimeMs; } catch {}
-  return crypto.createHash("md5").update([newestMtime(path.join(dir, "src")), newestMtime(path.join(dir, "public")), lm, THUMB_W].join("|")).digest("hex").slice(0, 12);
-};
-app.use("/thumbs", express.static(path.join(STATE_DIR, "thumbs"), { maxAge: "30d", immutable: true }));
 
 app.post("/api/thumbs", async (req, res) => {
   const dir = process.env.INSYD_PROJECT;
   if (!dir) return res.status(400).json({ error: "No project open" });
   const { compositionId, entryPoint, layoutFile = "layout.json", every = 15 } = req.body;
-  const slug = slugOf(dir), key = thumbKey(dir, layoutFile);
-  const outDir = path.join(STATE_DIR, "thumbs", slug, key);
-  const manifestPath = path.join(outDir, "manifest.json");
-  const base = `/thumbs/${slug}/${key}`;
-  if (fs.existsSync(manifestPath)) return res.json({ status: "ready", key, base, ...JSON.parse(fs.readFileSync(manifestPath, "utf8")) });
+  const ready = processedThumbs(dir);
+  if (ready) return res.json({ status: "ready", key: ready.hash, ...ready });
+  const key = sourceHash(dir, layoutFile);
+  const outDir = path.join(dir, STUDIO_DIR, "thumbs");
+  const base = "/project-studio/thumbs";
   const running = thumbJobs.get(key);
   if (running) return res.json({ status: running.status, key, base, progress: running.progress, error: running.error });
   const job = { status: "running", progress: 0, error: null };
@@ -301,14 +301,10 @@ app.post("/api/thumbs", async (req, res) => {
         onStart: () => {}, onFrameUpdate: (n) => { job.progress = n / Math.ceil(composition.durationInFrames / every); },
       });
       const files = (await fsp.readdir(tmp)).filter((f) => f.endsWith(".jpeg")).sort((a, b) => Number(a.match(/\d+/)[0]) - Number(b.match(/\d+/)[0]));
-      const manifest = { every, count: files.length, width: THUMB_W, height: Math.round((THUMB_W * composition.height) / composition.width), fps: composition.fps, durationInFrames: composition.durationInFrames, files };
+      const manifest = { hash: key, every, count: files.length, width: THUMB_W, height: Math.round((THUMB_W * composition.height) / composition.width), fps: composition.fps, durationInFrames: composition.durationInFrames, files };
       await fsp.writeFile(path.join(tmp, "manifest.json"), JSON.stringify(manifest));
       await fsp.rm(outDir, { recursive: true, force: true });
       await fsp.rename(tmp, outDir);
-      // keep only the newest 3 keys per project
-      const parent = path.join(STATE_DIR, "thumbs", slug);
-      const keys = (await fsp.readdir(parent)).filter((k) => !k.endsWith(".tmp")).map((k) => ({ k, t: fs.statSync(path.join(parent, k)).mtimeMs })).sort((a, b) => b.t - a.t);
-      for (const old of keys.slice(3)) await fsp.rm(path.join(parent, old.k), { recursive: true, force: true });
       job.status = "ready"; job.progress = 1;
     } catch (e) {
       job.status = "error"; job.error = e.message;
@@ -452,7 +448,7 @@ const httpServer = http.createServer(app);
 attachBridge(httpServer);
 httpServer.listen(PORT, HOST, () => {
   const url = `http://${SHOW_HOST}:${PORT}`;
-  console.log(`\n  Insyd Studio  →  ${url}\n  project: ${process.env.INSYD_PROJECT || "(none open)"}\n  MCP:     ${MCP_URL}\n`);
+  console.log(`\n  Templates     →  ${url}\n  Studio        →  ${url}/studio\n  project:  ${process.env.INSYD_PROJECT || "(none open)"}\n  MCP:     ${MCP_URL}\n`);
   if (!process.env.INSYD_NO_OPEN && process.platform === "darwin") exec("open", [url]).catch(() => {});
   // Warm the render bundle in the background so preview_frame / export / thumbnails start fast.
   const dir = process.env.INSYD_PROJECT;

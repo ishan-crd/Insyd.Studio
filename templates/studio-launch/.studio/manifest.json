@@ -1,0 +1,127 @@
+{
+  "title": "Studio by Insyd",
+  "tagline": "A dark, glyph-rendered product reveal: decode captions, a monitor drop and a flight through the feature set.",
+  "description": "The launch film for Studio by Insyd. Words are built from glyphs over a rolling character-art terrain, questions decode out of noise, a search bar types itself, and on the drop a monitor reads INTRODUCING… before the camera flies into the product. A constellation of feature panels, a wall of templates and a logo that lands on the final hit close it out — cut to an original 120 BPM score with every sound effect on the timeline.",
+  "category": "Product launch",
+  "tags": [
+    "Dark",
+    "Glyph type",
+    "AI",
+    "Product reveal",
+    "Original score"
+  ],
+  "author": "Insyd",
+  "music": "Original score (synthesized, included)",
+  "posterFrame": 30,
+  "order": 1,
+  "compositionId": "StudioLaunch",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "durationInFrames": 1740,
+  "scenes": [
+    {
+      "id": "hook",
+      "label": "TODAY",
+      "frames": 180
+    },
+    {
+      "id": "without",
+      "label": "Without…?",
+      "frames": 180
+    },
+    {
+      "id": "search",
+      "label": "Search bar",
+      "frames": 120
+    },
+    {
+      "id": "intro",
+      "label": "Introducing (room)",
+      "frames": 240
+    },
+    {
+      "id": "word",
+      "label": "STUDIO",
+      "frames": 120
+    },
+    {
+      "id": "prompt",
+      "label": "Prompt",
+      "frames": 120
+    },
+    {
+      "id": "queue",
+      "label": "Edit queue",
+      "frames": 150
+    },
+    {
+      "id": "network",
+      "label": "Feature constellation",
+      "frames": 210
+    },
+    {
+      "id": "wall",
+      "label": "Template wall",
+      "frames": 120
+    },
+    {
+      "id": "end",
+      "label": "End card",
+      "frames": 300
+    }
+  ],
+  "counts": {
+    "clips": 54,
+    "sounds": 71,
+    "values": 113,
+    "brand": 12
+  },
+  "palette": [
+    {
+      "name": "Void",
+      "value": "#030404"
+    },
+    {
+      "name": "ASCII field",
+      "value": "#2FA784"
+    },
+    {
+      "name": "Ink",
+      "value": "#F2F5F3"
+    },
+    {
+      "name": "Ink dim",
+      "value": "#8A948F"
+    },
+    {
+      "name": "Orb",
+      "value": "#E14BFF"
+    },
+    {
+      "name": "Accent (Studio blue)",
+      "value": "#3D74E8"
+    },
+    {
+      "name": "Mint",
+      "value": "#3FD1A0"
+    },
+    {
+      "name": "Panel",
+      "value": "#161A19"
+    },
+    {
+      "name": "Panel line",
+      "value": "#2A302E"
+    },
+    {
+      "name": "Logo tile",
+      "value": "#DDF1EA"
+    }
+  ],
+  "fonts": [
+    "Inter"
+  ],
+  "hash": "6f24e6d5e6c2702d",
+  "generatedAt": "2026-09-26T09:41:59.458Z"
+}

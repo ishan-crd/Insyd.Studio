@@ -27,7 +27,7 @@ export default defineConfig(() => {
     server: {
       fs: { allow: [__dirname, ...(project ? [project] : [])] },
       // layout.json is written by the editor itself; the app is the source of truth while open.
-      watch: { ignored: ["**/layout.json", "**/out/**", "**/.insyd/**"] },
+      watch: { ignored: ["**/layout.json", "**/out/**", "**/.insyd/**", "**/.studio/**"] },
     },
     optimizeDeps: { exclude: [] },
   };

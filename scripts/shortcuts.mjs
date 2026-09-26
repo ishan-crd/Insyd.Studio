@@ -4,7 +4,7 @@ const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const errors = []; page.on("pageerror", (e) => errors.push(e.message));
 const results = []; const check = (n, ok, info = "") => { results.push(ok); console.log(`${ok ? "✓" : "✗"} ${n}${info ? " — " + info : ""}`); };
 const S = () => page.evaluate(() => { const s = window.__insydStore.getState(); return { sel: s.selection, multi: s.multi, zoom: s.zoom, el: s.layout.elements, snd: s.layout.sounds, n: s.scan.elements.length, ns: s.scan.sounds.length }; });
-await page.goto("http://localhost:4321/", { waitUntil: "networkidle" });
+await page.goto("http://localhost:4321/studio", { waitUntil: "networkidle" });
 await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done", null, { timeout: 240000 });
 await page.waitForTimeout(2000);
 await page.mouse.click(800, 400);

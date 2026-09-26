@@ -442,7 +442,7 @@ export const Editable: React.FC<EditableProps> = ({ id, label, kind = "block", c
  * cumulatedFrom makes every hook below (useCurrentFrame, useAnim, nested Sequences) see the
  * remapped frame: round(localFrame × speed).
  */
-const TimeScale: React.FC<{ speed: number; children: React.ReactNode }> = ({ speed, children }) => {
+export const TimeScale: React.FC<{ speed: number; children: React.ReactNode }> = ({ speed, children }) => {
   const frame = useCurrentFrame();
   const timeline = Internals.useTimelinePosition();
   const ctx = useContext(Internals.SequenceContext);

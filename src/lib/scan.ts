@@ -24,6 +24,15 @@ export const scanProject = async (step = 3, force = false) => {
   if (!force && !inventoryChanged) {
     try { const cached = localStorage.getItem(cacheKey()); if (cached) { const c = JSON.parse(cached); if (c.elements && c.sounds) { s.setScan({ status: "done", progress: 1, elements: c.elements, sounds: c.sounds }); return; } } } catch {}
   }
+  // A scan processed for exactly this source (shipped with a template, or saved by an earlier session)
+  if (!force) {
+    const r = await fetch("/api/project/scan").then((x) => x.json()).catch(() => null);
+    if (r?.scan?.elements && r.scan.sounds) {
+      s.setScan({ status: "done", progress: 1, elements: r.scan.elements, sounds: r.scan.sounds });
+      try { localStorage.setItem(cacheKey(), JSON.stringify(r.scan)); } catch {}
+      return;
+    }
+  }
   inventoryChanged = false;
   running = true;
   s.setScan({ status: "running", progress: 0 });
@@ -71,6 +80,8 @@ export const scanProject = async (step = 3, force = false) => {
     const soundList = Array.from(sounds.values()).sort((a, b) => a.natural - b.natural || a.id.localeCompare(b.id));
     useStore.getState().setScan({ status: "done", progress: 1, elements, sounds: soundList });
     try { localStorage.setItem(cacheKey(), JSON.stringify({ elements, sounds: soundList })); } catch {}
+    // keep it with the project (.studio/scan.json) so the next session — or a copy — skips the analysis
+    fetch("/api/project/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ elements, sounds: soundList }) }).catch(() => {});
   } finally {
     running = false;
   }

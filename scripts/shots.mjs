@@ -1,7 +1,7 @@
 import { chromium } from "playwright";
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined });
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
-await page.goto("http://localhost:4321/", { waitUntil: "networkidle" });
+await page.goto("http://localhost:4321/studio", { waitUntil: "networkidle" });
 await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done", null, { timeout: 180000 });
 await page.waitForTimeout(600);
 // 1) element with props + animation editor

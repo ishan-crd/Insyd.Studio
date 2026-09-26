@@ -15,7 +15,7 @@ const clipBox = async (title) => { const c = await page.$(`.aclip[title^="${titl
 const dragMouse = async (x0, y0, x1, y1, steps = 8) => { await page.mouse.move(x0, y0); await page.mouse.down(); for (let i = 1; i <= steps; i++) await page.mouse.move(x0 + (x1 - x0) * i / steps, y0 + (y1 - y0) * i / steps); await page.mouse.up(); await page.waitForTimeout(150); };
 const menuClick = async (label) => { await page.click(`.ctx .ctx-item:has-text("${label}")`); await page.waitForTimeout(250); };
 
-await page.goto("http://localhost:4321/", { waitUntil: "networkidle" });
+await page.goto("http://localhost:4321/studio", { waitUntil: "networkidle" });
 await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done", null, { timeout: 240000 });
 await page.waitForTimeout(2500);
 await page.evaluate(() => { document.querySelector(".app").style.setProperty("--tl-h", "460px"); });

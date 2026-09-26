@@ -1,0 +1,11 @@
+{
+  "title": "thumb MCP",
+  "tagline": "Warm, playful and beat-cut: a pixel mascot, a pill carousel and on-device demos for a developer tool.",
+  "description": "The launch film for thumb, the open-source iPhone MCP for Claude. A pixel-art thumb mascot, a carousel of things to ask Claude, search and Figma demos on a phone, a settings walkthrough and an install command — every scene starts on a downbeat of the track, with the effects mixed over it. Built for developer tools and AI products that want to feel friendly rather than corporate.",
+  "category": "Developer tools",
+  "tags": ["Light", "Playful", "Pixel art", "Beat-synced", "Developer tool"],
+  "author": "Insyd",
+  "music": "\"Wannabe\" — a licensed commercial track; replace it before publishing your video",
+  "posterFrame": 1450,
+  "order": 2
+}

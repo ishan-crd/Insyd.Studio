@@ -6,7 +6,7 @@ const errors = []; page.on("pageerror", (e) => errors.push(e.message));
 const results = []; const check = (n, ok, info = "") => { results.push(ok); console.log(`${ok ? "✓" : "✗"} ${n}${info ? " — " + info : ""}`); };
 const S = () => page.evaluate(() => { const s = window.__insydStore.getState(); return { sel: s.selection, multi: s.multi, frame: window.__insydPlayer.getCurrentFrame() }; });
 const dragMouse = async (x0, y0, x1, y1, steps = 10, mid) => { await page.mouse.move(x0, y0); await page.mouse.down(); for (let i = 1; i <= steps; i++) { await page.mouse.move(x0 + (x1 - x0) * i / steps, y0 + (y1 - y0) * i / steps); if (mid && i === Math.floor(steps / 2)) await mid(); } await page.mouse.up(); await page.waitForTimeout(150); };
-await page.goto("http://localhost:4321/", { waitUntil: "networkidle" });
+await page.goto("http://localhost:4321/studio", { waitUntil: "networkidle" });
 await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done", null, { timeout: 240000 });
 await page.waitForTimeout(2000);
 await page.evaluate(() => { document.querySelector(".app").style.setProperty("--tl-h", "460px"); });

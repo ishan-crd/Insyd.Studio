@@ -5,7 +5,7 @@ const browser = await chromium.launch({ executablePath: process.env.CHROME || un
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const cdp = await page.context().newCDPSession(page);
 await cdp.send("Performance.enable");
-await page.goto("http://localhost:4321/" + (process.env.Q || ""), { waitUntil: "networkidle" });
+await page.goto("http://localhost:4321/studio" + (process.env.Q || ""), { waitUntil: "networkidle" });
 await page.waitForFunction(() => !!window.__insydPlayer, null, { timeout: 120000 });
 // let the scan finish (it is cached after the first run)
 await page.waitForFunction(() => { const s = window.__insydStore?.getState(); return !s || s.scan.status !== "running"; }, null, { timeout: 120000 });

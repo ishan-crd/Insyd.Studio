@@ -5,7 +5,7 @@ import path from "node:path";
 
 import { PROJECT, snapshotProject, finish } from "./lib/project.mjs";
 snapshotProject();
-const BASE = "http://localhost:4321/";
+const BASE = "http://localhost:4321/studio";
 const results = []; let failed = 0;
 const check = (name, ok, info = "") => { results.push([ok ? "PASS" : "FAIL", name, info]); if (!ok) failed++; console.log(`${ok ? "✓" : "✗"} ${name}${info ? "  — " + info : ""}`); };
 

@@ -10,7 +10,7 @@ const ok = (c, m) => { if (c) pass++; else { fail++; console.log("  FAIL", m); }
 const shot = (n) => page.screenshot({ path: `.insyd/shots/mobile-${n}.png` });
 const S = () => page.evaluate(() => { const s = window.__insydStore.getState(); return { sel: s.selection, multi: s.multi, zoom: s.zoom, frame: window.__insydPlayer?.getCurrentFrame?.() }; });
 
-await page.goto("http://localhost:4321/", { waitUntil: "networkidle" });
+await page.goto("http://localhost:4321/studio", { waitUntil: "networkidle" });
 await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done", null, { timeout: 240000 });
 await page.evaluate(() => { localStorage.setItem("insyd:theme", "light"); document.documentElement.dataset.theme = "light"; });
 await page.waitForTimeout(600);

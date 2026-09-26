@@ -30,6 +30,12 @@ where Save, Open in Claude Code, Copy prompt, Rescan, Split / Duplicate / Lock /
 live. Dialogs open as bottom sheets. To use it from a phone, start Studio listening on your network —
 `INSYD_HOST=0.0.0.0 npm start` — and open `http://<your-mac>.local:4321` on the same Wi-Fi.
 
+## Routes
+
+`/` is the **template marketplace** — cards play their preview on hover, `/templates/<slug>` has the full
+preview, scenes, palette and facts, and **Edit in Studio** copies the template into
+`~/Documents/Studio Projects/` and opens it. `/studio` is the editor. See [`templates/`](templates).
+
 ## What you can do
 
 | | |
@@ -125,6 +131,10 @@ node scripts/e2e.mjs         edit → save → source diff → reload (33 checks
 node scripts/mcp.mjs         a real MCP client drives the editor (24)
 node scripts/claude.mjs      Claude Code hand-off + live reload of external edits (12)
 node scripts/speed.mjs         element time remap + sound playback rate, saved to code (17)
+node scripts/marketplace.mjs  routes, hover previews, template page, Edit in Studio end to end (25)
+node scripts/cliptiming.mjs   every clip's timeline bounds = the frames it is on screen
+node scripts/drafts.mjs       unsaved drafts vs. code that changed under them, Discard (10)
+node scripts/package-template.mjs <slug>   process a template (.studio/: scan, thumbs, preview, poster, manifest)
 node scripts/mobile.mjs       the phone layout at 390px with a touch screen (39)
 node scripts/playpause.mjs · multiselect · marquee · groupedit · clips · elclips · audio · snap · shortcuts · thumbs · preview
 node scripts/perf.mjs        main-thread ms/frame during playback

@@ -6,7 +6,7 @@ const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const errors = []; page.on("pageerror", (e) => errors.push(e.message));
 let pass = 0, fail = 0;
 const check = (c, m, d = "") => { if (c) pass++; else { fail++; console.log("  ✗", m, d); } };
-const load = async () => { await page.goto("http://localhost:4321/", { waitUntil: "load", timeout: 180000 }); await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done", null, { timeout: 600000 }); await page.waitForTimeout(800); };
+const load = async () => { await page.goto("http://localhost:4321/studio", { waitUntil: "load", timeout: 180000 }); await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done", null, { timeout: 600000 }); await page.waitForTimeout(800); };
 await load();
 // pick a clip the code positions explicitly (delay in the code) and one it does not
 const ids = await page.evaluate(() => { const loc = window.__insydStore.getState().index.locators; const all = Object.keys(loc).filter((k) => k.startsWith("jsx:"));

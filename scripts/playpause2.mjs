@@ -4,7 +4,7 @@ const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } }
 // fresh scan every time: clear the cache
 await ctx.addInitScript(() => { try { for (const k of Object.keys(localStorage)) if (k.startsWith("insyd:scan")) localStorage.removeItem(k); } catch {} });
 const page = await ctx.newPage();
-await page.goto("http://localhost:4321/", { waitUntil: "networkidle" });
+await page.goto("http://localhost:4321/studio", { waitUntil: "networkidle" });
 await page.waitForFunction(() => !!window.__insydPlayer, null, { timeout: 60000 });
 await page.waitForTimeout(1500); // scan has started by now
 const scanStatus = await page.evaluate(() => window.__insydStore.getState().scan.status);

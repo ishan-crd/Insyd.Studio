@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "elements": {},
+  "copy": {},
+  "scenes": {},
+  "props": {},
+  "sounds": {
+    "added.mu0j16zp0": {
+      "added": true,
+      "src": "sfx/chime.wav",
+      "at": 959,
+      "volume": 0.7,
+      "kind": "sfx",
+      "label": "Chime",
+      "duration": 27,
+      "loop": false
+    }
+  },
+  "sceneSpeeds": {}
+}

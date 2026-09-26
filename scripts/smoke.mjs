@@ -2,7 +2,7 @@
 import { chromium } from "playwright";
 import fs from "node:fs";
 
-const BASE = process.env.INSYD_URL || "http://localhost:4321";
+const BASE = process.env.INSYD_URL || "http://localhost:4321/studio";
 const dir = new URL("../.insyd/shots/", import.meta.url).pathname;
 fs.mkdirSync(dir, { recursive: true });
 // Uses Playwright's bundled Chromium, or CHROME=/path/to/chromium.
