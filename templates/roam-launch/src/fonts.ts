@@ -1,0 +1,13 @@
+import { loadFont as loadAnton } from "@remotion/google-fonts/Anton";
+import { loadFont as loadArchivoBlack } from "@remotion/google-fonts/ArchivoBlack";
+import { loadFont as loadInstrumentSerif } from "@remotion/google-fonts/InstrumentSerif";
+import { loadFont as loadBricolage } from "@remotion/google-fonts/BricolageGrotesque";
+import { loadFont as loadInstrumentSans } from "@remotion/google-fonts/InstrumentSans";
+import { loadFont as loadDMMono } from "@remotion/google-fonts/DMMono";
+loadAnton("normal", { weights: ["400"], subsets: ["latin"] });
+loadArchivoBlack("normal", { weights: ["400"], subsets: ["latin"] });
+loadInstrumentSerif("normal", { weights: ["400"], subsets: ["latin"] });
+loadInstrumentSerif("italic", { weights: ["400"], subsets: ["latin"] });
+loadBricolage("normal", { weights: ["400", "500", "600", "700", "800"], subsets: ["latin"] });
+loadInstrumentSans("normal", { weights: ["400", "500", "600", "700"], subsets: ["latin"] });
+loadDMMono("normal", { weights: ["400", "500"], subsets: ["latin"] });

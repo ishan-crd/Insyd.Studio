@@ -139,7 +139,7 @@
 .mk-back:hover { color: var(--ink); }
 .mk-detail { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 40px; align-items: start; }
 .mk-player { aspect-ratio: 16 / 9; border-radius: var(--mk-r); overflow: hidden; background: var(--mk-media); box-shadow: var(--mk-lift); }
-.mk-player video { width: 100%; height: 100%; display: block; background: #000; }
+.mk-player video { width: 100%; height: 100%; display: block; background: var(--player-bg, #000); }
 .mk-scenes { position: relative; display: flex; gap: 3px; margin-top: 14px; height: 40px; }
 .mk-scene { position: relative; min-width: 0; border: 1px solid var(--line); border-radius: 7px; background: var(--panel); cursor: pointer; padding: 0 8px 0 11px; text-align: left; font: inherit; font-size: 12px; font-weight: 500; color: var(--ink-2); overflow: hidden; transition: background .15s, border-color .15s; }
 .mk-scene::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--c); }

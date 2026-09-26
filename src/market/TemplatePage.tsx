@@ -32,7 +32,7 @@ export const TemplatePage: React.FC = () => {
         <Link to="/" className="mk-back">← All templates</Link>
         <div className="mk-detail">
           <div className="mk-detail-main">
-            <div className="mk-player">
+            <div className="mk-player" style={t.background ? { ["--player-bg" as string]: t.background } : undefined}>
               <video ref={v} src={t.preview ?? undefined} poster={t.poster ?? undefined} controls playsInline preload="metadata" onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)} />
             </div>
             <div className="mk-scenes" aria-label="Scenes">

@@ -1,0 +1,117 @@
+{
+  "title": "Roam",
+  "tagline": "Vertical, poster-bold and loud: slammed type, colour blocks that flip on the beat, stamps and stickers.",
+  "description": "A 9:16 launch film for a consumer app, built like a gig poster. Four problems slam in on four colour blocks, a question rises out of a mask with a hand-drawn underline, the ask is typed into the app, and on the drop the name lands letter by letter. Then the product, beat by beat: itinerary cards fly in, a plane draws the route between four stops, the price rolls down under budget with a rubber stamp, a boarding pass slides up, BOOKED. Eight cities flash on the beat before the end card. Cut to an original 120 BPM house track, with every slam, whip, stamp and cha-ching on the timeline.",
+  "category": "App launch",
+  "tags": [
+    "Vertical 9:16",
+    "Bold colour",
+    "Kinetic type",
+    "Consumer app",
+    "Original score"
+  ],
+  "author": "Insyd",
+  "music": "Original 120 BPM house track (synthesized, included)",
+  "posterFrame": 330,
+  "order": 4,
+  "background": "#EB541D",
+  "compositionId": "RoamLaunch",
+  "width": 1080,
+  "height": 1920,
+  "fps": 30,
+  "durationInFrames": 1050,
+  "scenes": [
+    {
+      "id": "hook",
+      "label": "Hook (4 slams)",
+      "frames": 120
+    },
+    {
+      "id": "question",
+      "label": "What if…",
+      "frames": 90
+    },
+    {
+      "id": "prompt",
+      "label": "The ask",
+      "frames": 90
+    },
+    {
+      "id": "logo",
+      "label": "ROAM (drop)",
+      "frames": 60
+    },
+    {
+      "id": "itinerary",
+      "label": "Itinerary",
+      "frames": 120
+    },
+    {
+      "id": "map",
+      "label": "Route map",
+      "frames": 120
+    },
+    {
+      "id": "budget",
+      "label": "Budget",
+      "frames": 90
+    },
+    {
+      "id": "booked",
+      "label": "Booked",
+      "frames": 90
+    },
+    {
+      "id": "montage",
+      "label": "Anywhere",
+      "frames": 120
+    },
+    {
+      "id": "end",
+      "label": "End card",
+      "frames": 150
+    }
+  ],
+  "counts": {
+    "clips": 63,
+    "sounds": 54,
+    "values": 93,
+    "brand": 9
+  },
+  "palette": [
+    {
+      "name": "Ink",
+      "value": "#0E0E12"
+    },
+    {
+      "name": "Cream",
+      "value": "#FFF4E4"
+    },
+    {
+      "name": "Ultramarine",
+      "value": "#2F3BFF"
+    },
+    {
+      "name": "Tangerine",
+      "value": "#FF5B1F"
+    },
+    {
+      "name": "Acid lime",
+      "value": "#D8FF3E"
+    },
+    {
+      "name": "Bubblegum",
+      "value": "#FFB8D9"
+    },
+    {
+      "name": "Card",
+      "value": "#FFFFFF"
+    }
+  ],
+  "fonts": [
+    "Anton",
+    "Bricolage Grotesque"
+  ],
+  "hash": "be46c3fc9af88a6f",
+  "generatedAt": "2026-09-26T21:37:07.798Z"
+}
