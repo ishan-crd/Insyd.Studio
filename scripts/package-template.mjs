@@ -39,6 +39,8 @@ const open = async (p) => {
 };
 
 try {
+  // always analyse from scratch: the facts (e.g. editable values) come from playing the whole film
+  fs.rmSync(path.join(out, "scan.json"), { force: true });
   log("opening in Studio");
   await open(dir);
   await sleep(1500);

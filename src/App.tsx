@@ -37,7 +37,16 @@ export const App: React.FC = () => {
       useStore.getState().init(d, saved, draft);
       const n = draft ? (Object.values(draft) as unknown[]).filter((v) => v && typeof v === "object").reduce<number>((a, v) => a + Object.keys(v as object).length, 0) : 0;
       if (n) useStore.getState().setToast(`Restored ${n} unsaved change${n === 1 ? "" : "s"}`);
-      api.index().then((i) => { useStore.getState().setIndex(i); noteInventory(Object.keys(i.locators)); reconcileDraft(); }).catch(() => {});
+      api.index().then((i) => {
+        const st = useStore.getState();
+        st.setIndex(i); noteInventory(Object.keys(i.locators));
+        // Every <Editable>'s transform as written in the code, straight from the index — so clips sit at
+        // their real position on the timeline before they have ever rendered (e.g. with a processed scan).
+        const fromCode: Record<string, Record<string, unknown>> = {};
+        for (const [k, l] of Object.entries(i.locators)) if (k.startsWith("jsx:") && l.values) fromCode[k.slice(4)] = l.values;
+        st.setCodeDefaults({ ...fromCode, ...useStore.getState().codeDefaults } as typeof st.codeDefaults);
+        reconcileDraft();
+      }).catch(() => {});
       setTimeout(ensureThumbs, 1500);
       connectBridge();
       // restore UI state after a save-reload

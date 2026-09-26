@@ -7,7 +7,7 @@ const errors = []; page.on("pageerror", (e) => errors.push(e.message));
 let pass = 0, fail = 0;
 const check = (c, m) => { if (c) pass++; else { fail++; console.log("  ✗", m); } };
 await page.goto("http://localhost:4321/studio", { waitUntil: "load", timeout: 180000 });
-await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done", null, { timeout: 600000 });
+await page.waitForFunction(() => window.__insydStore?.getState().scan.status === "done" && window.__insydStore.getState().index, null, { timeout: 600000 });
 const clips = () => page.evaluate(() => {
   const s = window.__insydStore.getState();
   return s.allElements().map((e) => { const t = s.transform(e.id); return { id: e.id, start: e.first + t.delay + t.trimIn, end: e.first + t.delay + (t.trimOut ?? e.last - e.first), delay: t.delay }; });

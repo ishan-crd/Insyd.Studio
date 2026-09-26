@@ -7,6 +7,7 @@ your own copy in `~/Documents/Studio Projects/` and opens it in the editor at `/
 |---|---|---|
 | [`studio-launch`](studio-launch) | 0:58 · 10 scenes | Dark, glyph-rendered type, decode captions, a monitor reveal, a feature constellation — the Studio by Insyd launch film |
 | [`thumb-launch`](thumb-launch) | 0:51 · 11 scenes | Warm, playful and beat-cut: a pixel mascot, a pill carousel, on-device demos — the thumb MCP launch film |
+| [`opus-viral`](opus-viral) | 0:14 · 12 states · loops | One shape, never cut: a button morphs through 13 UI states on a 120 BPM loop, driven by a cursor (1:1, 60 fps) |
 
 Each template is a standalone Remotion project (Studio SDK in `src/insyd/`) plus:
 

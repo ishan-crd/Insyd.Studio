@@ -45,6 +45,7 @@ await page.click('.mk-filters button:has-text("All")');
 // template page via client-side routing
 await page.click(`${card} .mk-card-title`);
 await page.waitForURL(`**/templates/${slug}`);
+await page.waitForSelector(".mk-scene");
 check(await page.locator(".mk-player video").count() === 1 && await page.locator(".mk-scene").count() === templates.find((t) => t.slug === slug).scenes.length, "template page: player + one button per scene");
 await page.locator(".mk-scene").nth(2).click(); await page.waitForTimeout(500);
 const t2 = await page.evaluate(() => document.querySelector(".mk-player video").currentTime);
@@ -53,7 +54,7 @@ check(t2 >= from2 - 0.1 && t2 < from2 + 1.2, "clicking a scene seeks the preview
 await page.goBack(); await page.waitForURL(BASE + "/"); await page.waitForSelector(".mk-card[data-slug]");
 check(await page.locator(".mk-card[data-slug]").count() === templates.length, "back returns to the marketplace");
 
-// Edit in Studio → own copy → editor with processed files
+// Edit in Studio → own copy → editor with processed files 
 await page.hover(`${card} .mk-media`);
 const t0 = Date.now();
 await page.click(`${card} .mk-media-actions .mk-btn.primary`);
@@ -69,9 +70,13 @@ await page.waitForSelector(".sblock.film", { timeout: 30000 }).catch(() => {});
 check(await page.locator(".sblock.film").count() > 0, "timeline filmstrip from the processed thumbnails");
 check(fs.existsSync(job.path) && fs.lstatSync(`${job.path}/node_modules`).isSymbolicLink(), "copy shares the template's node_modules");
 
-// clean up: delete the copy, re-open what was open
+// clean up: re-open what was open (before deleting the copy it replaces), then delete the copy
+if (before) {
+  await fetch(BASE + "/api/project/open", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: before }) });
+  for (let i = 0; i < 60 && (await api("/api/project")).current?.path !== before; i++) await new Promise((r) => setTimeout(r, 250));
+  await new Promise((r) => setTimeout(r, 3000));
+}
 if (job.path && job.path.includes("Studio Projects")) fs.rmSync(job.path, { recursive: true, force: true });
-if (before) await fetch(BASE + "/api/project/open", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: before }) });
 check(errors.length === 0, "no page errors", errors.slice(0, 2).join(" | "));
 console.log(`${pass}/${pass + fail} passed`);
 await browser.close();

@@ -442,6 +442,18 @@ fs.writeFileSync(mcpConfigPath, JSON.stringify({ mcpServers: { "insyd-studio": {
 const mode = process.env.INSYD_DEV ? "development" : "production";
 process.env.NODE_ENV = mode;
 vite = await createViteServer({ root: ROOT, mode, server: { middlewareMode: true, port: PORT, hmr: true }, appType: "spa" });
+// If the open project's folder disappears (deleted, moved, unmounted), fall back to "no project" instead
+// of breaking every page — the project picker then shows at /studio.
+app.use((req, _res, next) => {
+  const dir = process.env.INSYD_PROJECT;
+  if (dir && !fs.existsSync(dir)) {
+    console.warn(`[insyd] the open project is gone (${dir}) — closing it`);
+    const s = readState(); s.path = null; writeState(s);
+    process.env.INSYD_PROJECT = "";
+    vite?.restart().catch(() => {});
+  }
+  next();
+});
 app.use(vite.middlewares);
 
 const httpServer = http.createServer(app);

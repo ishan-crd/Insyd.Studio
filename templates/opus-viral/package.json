@@ -1,0 +1,22 @@
+{
+  "name": "opus-viral",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Opus Viral on X — one shape morphing through 13 UI states on a 120 BPM loop (a Studio by Insyd template)",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "node scripts/render.mjs out/opus-viral.mp4",
+    "render:fast": "remotion render src/index.ts OpusViral out/opus-viral-fast.mp4 --codec h264 --crf 18",
+    "audio": "node scripts/make-audio.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.524",
+    "@remotion/google-fonts": "^4.0.524",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.524",
+    "typescript": "^7.0.2"
+  }
+}

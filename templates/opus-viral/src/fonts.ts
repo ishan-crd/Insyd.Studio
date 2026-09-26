@@ -1,0 +1,11 @@
+import { loadFont as loadGeist } from "@remotion/google-fonts/Geist";
+import { loadFont as loadGeistMono } from "@remotion/google-fonts/GeistMono";
+import { loadFont as loadInter } from "@remotion/google-fonts/Inter";
+import { loadFont as loadInterTight } from "@remotion/google-fonts/InterTight";
+import { loadFont as loadManrope } from "@remotion/google-fonts/Manrope";
+const W = ["400", "500", "600", "700"] as const;
+loadGeist("normal", { weights: [...W], subsets: ["latin"] });
+loadGeistMono("normal", { weights: ["400", "500"], subsets: ["latin"] });
+loadInter("normal", { weights: [...W], subsets: ["latin"] });
+loadInterTight("normal", { weights: [...W], subsets: ["latin"] });
+loadManrope("normal", { weights: [...W], subsets: ["latin"] });

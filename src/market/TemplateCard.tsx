@@ -26,11 +26,14 @@ export const HoverVideo: React.FC<{ t: Template; active: boolean; autoplay?: boo
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, [on]);
+  // anything that isn't 16:9 is shown whole (contain), on a blurred backdrop made from its own poster
+  const fit = Math.abs(t.width / t.height - 16 / 9) > 0.02;
   return (
     <>
-      {t.poster && <img className="mk-poster" src={t.poster} alt="" draggable={false} />}
+      {fit && (t.background ? <div className="mk-backdrop" style={{ background: t.background, filter: "none", opacity: 1, inset: 0, width: "100%", height: "100%" }} /> : t.poster && <img className="mk-backdrop" src={t.poster} alt="" draggable={false} />)}
+      {t.poster && <img className={`mk-poster ${fit ? "fit" : ""}`} src={t.poster} alt="" draggable={false} />}
       {loaded && t.preview && (
-        <video ref={v} className={`mk-video ${on && playing ? "on" : ""}`} src={t.preview} muted loop playsInline preload="auto"
+        <video ref={v} className={`mk-video ${fit ? "fit" : ""} ${on && playing ? "on" : ""}`} src={t.preview} muted loop playsInline preload="auto"
           onPlaying={() => setPlaying(true)} onPause={() => setPlaying(false)} />
       )}
       <div className="mk-progress" style={{ opacity: on && playing ? 1 : 0 }}><i style={{ width: `${p * 100}%` }} /></div>

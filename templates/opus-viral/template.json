@@ -1,0 +1,19 @@
+{
+  "title": "Opus Viral on X",
+  "tagline": "One shape, never cut: a button morphs through 13 UI states on a 120 BPM loop, driven by a real cursor.",
+  "description": "Dribbble-level UI motion. A single black-and-white shape morphs — size, radius and colour on springs — from a button into a loader, a check, a dynamic island, a music player you play and scrub, a volume slider that stretches past max, a toggle that flips on the beat, a liquid tab indicator, a chart that draws itself with a hover tooltip, a ⌘K palette you type into, and a toast — then back to the button, so the last frame is the first. 7 bars at 120 BPM with something on every beat, a camera that zooms so each state fills the square, and true sub-frame motion blur in renders.",
+  "category": "UI motion",
+  "tags": [
+    "Loop",
+    "Square",
+    "60 fps",
+    "Black & white",
+    "Springs",
+    "Cursor-driven"
+  ],
+  "author": "Insyd",
+  "music": "Original 120 BPM loop (synthesized, included)",
+  "posterFrame": 210,
+  "order": 3,
+  "background": "#ECEBE7"
+}

@@ -2,7 +2,7 @@
 export type Scene = { id: string; label: string; frames: number };
 export type Template = {
   slug: string; title: string; tagline: string; description: string; category: string; tags: string[];
-  author: string; music?: string; order?: number;
+  author: string; music?: string; order?: number; background?: string;
   width: number; height: number; fps: number; durationInFrames: number;
   scenes: Scene[]; counts: { clips: number; sounds: number; values: number; brand: number };
   palette: Array<{ name: string; value: string }>; fonts: string[];
