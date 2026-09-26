@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Shell } from "./Shell";
-import { fetchTemplate, type Template, duration, aspect } from "./api";
+import { fetchTemplate, type Template, duration, aspect, HOSTED } from "./api";
 import { useEditTemplate } from "./useTemplate";
 
 const SCENE_COLORS = ["#3B7DD8", "#D95F6E", "#2E9E6B", "#D8A23A", "#2A9D9F", "#E0733A", "#7B61D9", "#C9527F", "#5E8F3A", "#3A8FB8", "#B8743A"];
@@ -59,8 +59,8 @@ export const TemplatePage: React.FC = () => {
             <span className="mk-chip">{t.category}</span>
             <h1>{t.title}</h1>
             <p className="mk-side-tag">{t.tagline}</p>
-            <button className="mk-btn primary lg block" onClick={() => edit.start(t)} disabled={edit.busy}>Edit in Studio →</button>
-            <p className="mk-side-note">Makes your own copy in ~/Documents/Studio Projects and opens it in Studio.</p>
+            <button className="mk-btn primary lg block" onClick={() => edit.start(t)} disabled={edit.busy}>{HOSTED ? "Use this template →" : "Edit in Studio →"}</button>
+            <p className="mk-side-note">{HOSTED ? "Download the source and open it in Studio on your computer." : "Makes your own copy in ~/Documents/Studio Projects and opens it in Studio."}</p>
             <dl className="mk-dl">{facts.map(([k, val]) => <React.Fragment key={k}><dt>{k}</dt><dd>{val}</dd></React.Fragment>)}</dl>
             <h4>Palette</h4>
             <div className="mk-palette">{t.palette.map((c) => <div key={c.name}><i style={{ background: c.value }} /><span>{c.name}</span><code>{c.value}</code></div>)}</div>

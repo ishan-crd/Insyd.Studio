@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useTheme } from "../lib/theme";
 import { Sun, Moon } from "../lib/icons";
+import { HOSTED } from "./api";
 import "./market.css";
 
 /** The Studio by Insyd wordmark, exactly as in the editor's top bar. */
@@ -24,7 +25,7 @@ export const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           </nav>
           <div className="mk-nav-r">
             <button className="mk-icon" title={theme === "dark" ? "Light mode" : "Dark mode"} onClick={() => useTheme.getState().toggle()}>{theme === "dark" ? <Sun /> : <Moon />}</button>
-            <a className="mk-btn primary sm" href="/studio">Open Studio</a>
+            <a className="mk-btn primary sm" href="/studio">{HOSTED ? "Get Studio" : "Open Studio"}</a>
           </div>
         </div>
       </header>

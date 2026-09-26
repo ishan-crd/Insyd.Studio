@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import type { Template } from "./api";
+import { HOSTED, REPO, type Template } from "./api";
 
 type Job = { slug: string; title: string; stage: string; error: string | null; path: string | null };
 
@@ -11,8 +11,10 @@ const KEY = "insyd:opening-template";
 const pending = (): Job | null => { try { const v = sessionStorage.getItem(KEY); return v ? { ...JSON.parse(v), stage: "Opening Studio…", error: null, path: null } : null; } catch { return null; } };
 
 export const useEditTemplate = () => {
-  const [job, setJob] = useState<Job | null>(pending);
-  const start = async (t: Pick<Template, "slug" | "title">) => {
+  const [job, setJob] = useState<Job | null>(HOSTED ? null : pending);
+  const [hosted, setHosted] = useState<Template | null>(null);
+  const start = async (t: Template) => {
+    if (HOSTED) { setHosted(t); return; }
     try { sessionStorage.setItem(KEY, JSON.stringify({ slug: t.slug, title: t.title })); } catch {}
     setJob({ slug: t.slug, title: t.title, stage: "Starting…", error: null, path: null });
     const r = await fetch(`/api/templates/${t.slug}/use`, { method: "POST" }).then((x) => x.json()).catch((e) => ({ error: e.message }));
@@ -54,5 +56,23 @@ export const useEditTemplate = () => {
       </div>
     </div>
   );
-  return { start, overlay, busy: !!job && job.stage !== "error" };
+  const sheet = hosted && (
+    <div className="mk-modal-bg" onClick={() => setHosted(null)}>
+      <div className="mk-modal mk-use" onClick={(e) => e.stopPropagation()}>
+        <h3>Use “{hosted.title}”</h3>
+        <p>Studio runs on your computer — it edits the template's code and renders the video locally.</p>
+        <ol className="mk-use-steps">
+          <li><b>Download the template</b>
+            {hosted.download && <a className="mk-btn primary block" href={hosted.download.url} download>Download {hosted.slug}.zip · {(hosted.download.bytes / 1e6).toFixed(1)} MB</a>}
+          </li>
+          <li><b>Run Studio</b> (Node 20+)
+            <pre>git clone {REPO}{"\n"}cd Insyd.Studio && npm install && npm run dev</pre>
+          </li>
+          <li><b>Open it</b> — unzip, run <code>npm install</code> inside the folder, then in Studio choose <i>Open a project</i> and pick it. Everything is editable; Save writes into the code.</li>
+        </ol>
+        <button className="mk-btn" onClick={() => setHosted(null)}>Close</button>
+      </div>
+    </div>
+  );
+  return { start, overlay: overlay || sheet, busy: !!job && job.stage !== "error" };
 };

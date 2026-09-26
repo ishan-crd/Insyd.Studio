@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Shell } from "./Shell";
-import { fetchTemplates, type Template, duration } from "./api";
+import { fetchTemplates, type Template, duration, HOSTED } from "./api";
 import { TemplateCard, HoverVideo, Swatches } from "./TemplateCard";
 import { useEditTemplate } from "./useTemplate";
 
@@ -30,7 +30,7 @@ export const Marketplace: React.FC = () => {
             <p>Pick a template and open it in Studio. Claude swaps in your logo, copy and colours — every clip, sound and value stays editable, and every edit is written back into the code.</p>
             <div className="mk-cta">
               <a className="mk-btn primary lg" href="#templates">Browse templates</a>
-              <a className="mk-btn lg" href="/studio">Open Studio</a>
+              <a className="mk-btn lg" href="/studio">{HOSTED ? "Get Studio" : "Open Studio"}</a>
             </div>
           </div>
           {featured && (

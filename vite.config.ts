@@ -15,7 +15,9 @@ export default defineConfig(() => {
     : path.resolve(__dirname, "sdk/index.tsx");
   return {
     plugins: [react()],
-    define: { __INSYD_PROJECT__: JSON.stringify(project) },
+    // __INSYD_HOSTED__: the static web build (npm run build → dist/, deployed on Vercel): the marketplace
+    // reads a prebuilt catalogue, and /studio explains how to run the editor locally.
+    define: { __INSYD_PROJECT__: JSON.stringify(project), __INSYD_HOSTED__: JSON.stringify(process.env.INSYD_HOSTED === "1") },
     resolve: {
       alias: [
         { find: "@project/editor", replacement: editorEntry },

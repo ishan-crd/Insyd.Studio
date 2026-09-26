@@ -7,8 +7,13 @@ export type Template = {
   scenes: Scene[]; counts: { clips: number; sounds: number; values: number; brand: number };
   palette: Array<{ name: string; value: string }>; fonts: string[];
   preview: string | null; poster: string | null; installed: boolean;
+  /** hosted build only: the template source as a zip */
+  download?: { url: string; bytes: number };
 };
 
+/** the static web build (studio.insyd.in): no local server — templates are downloaded, Studio runs locally */
+export const HOSTED = __INSYD_HOSTED__;
+export const REPO = "https://github.com/ishan-crd/Insyd.Studio";
 export const fetchTemplates = (): Promise<{ templates: Template[]; projectsDir: string }> => fetch("/api/templates").then((r) => r.json());
 export const fetchTemplate = (slug: string): Promise<Template> => fetch(`/api/templates/${slug}`).then((r) => { if (!r.ok) throw new Error("Template not found"); return r.json(); });
 

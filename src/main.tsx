@@ -6,12 +6,13 @@ import { useStore } from "./state/store";
 import { stashSession } from "./lib/persist";
 import { Marketplace } from "./market/Marketplace";
 import { TemplatePage } from "./market/TemplatePage";
+import { GetStudio } from "./market/GetStudio";
 
 // Routes: /                  the template marketplace
 //         /templates/:slug   one template (full preview, scenes, palette, "Edit in Studio")
 //         /studio            the editor, on whatever project is open
 // The editor (and the project it hosts) loads only when /studio is visited.
-const Studio = lazy(() => import("./App").then((m) => ({ default: m.App })));
+const Studio = __INSYD_HOSTED__ ? () => null : lazy(() => import("./App").then((m) => ({ default: m.App })));
 
 // Code edited outside the editor (e.g. by Claude Code) triggers a full reload; keep the playhead and selection.
 if (import.meta.hot) import.meta.hot.on("vite:beforeFullReload", () => { try { stashSession(); } catch {} });
@@ -24,7 +25,7 @@ createRoot(document.getElementById("root")!).render(
     <Routes>
       <Route path="/" element={<Marketplace />} />
       <Route path="/templates/:slug" element={<TemplatePage />} />
-      <Route path="/studio/*" element={<Suspense fallback={<div className="welcome" />}><Studio /></Suspense>} />
+      <Route path="/studio/*" element={__INSYD_HOSTED__ ? <GetStudio /> : <Suspense fallback={<div className="welcome" />}><Studio /></Suspense>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   </BrowserRouter>,

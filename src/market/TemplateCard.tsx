@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { type Template, duration, aspect, signature } from "./api";
+import { type Template, duration, aspect, signature, HOSTED } from "./api";
 
 /**
  * A 16:9 card whose preview plays inside it while hovered (muted, looping, from the start), with a
@@ -54,7 +54,7 @@ export const TemplateCard: React.FC<{ t: Template; onEdit: (t: Template) => void
         <span className="mk-chip tl">{t.category}</span>
         <span className="mk-chip tr">{duration(t)}</span>
         <div className="mk-media-actions">
-          <button className="mk-btn primary sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(t); }}>Edit in Studio →</button>
+          <button className="mk-btn primary sm" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(t); }}>{HOSTED ? "Use this template →" : "Edit in Studio →"}</button>
           <span className="mk-btn ghost-dark sm">Details</span>
         </div>
       </Link>

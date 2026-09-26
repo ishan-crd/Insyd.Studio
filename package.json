@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "node server/index.mjs",
     "start": "node server/index.mjs",
+    "build": "node scripts/build-web.mjs",
+    "preview:web": "node scripts/preview-web.mjs",
     "typecheck": "tsc --noEmit -p .",
     "init": "node scripts/init-project.mjs",
     "smoke": "node scripts/smoke.mjs"
@@ -34,8 +36,12 @@
     "@types/react-dom": "^18.3.7",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^4.7.0",
+    "fflate": "^0.8.3",
     "playwright": "^1.63.0",
     "typescript": "^7.0.2",
     "vite": "^5.4.21"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

@@ -36,6 +36,20 @@ live. Dialogs open as bottom sheets. To use it from a phone, start Studio listen
 preview, scenes, palette and facts, and **Edit in Studio** copies the template into
 `~/Documents/Studio Projects/` and opens it. `/studio` is the editor. See [`templates/`](templates).
 
+## Deploying the web version (Vercel)
+
+The repo builds a static site — the template marketplace — with `npm run build` → `dist/`. The editor
+itself runs locally (it edits project files and renders with your machine), so on the web `/studio`
+explains how to run it, and each template can be downloaded as a zip.
+
+- Import the repo in Vercel with the **root directory** set to the repo root. `vercel.json` sets
+  everything: install `npm ci`, build `npm run build`, output `dist`, framework *Other*, and the routes
+  (`/api/templates` → the prebuilt catalogue, everything else → the app). No environment variables.
+- Node 20+ (`engines`). The build takes a few seconds; it only reads `templates/*/.studio/`, so process
+  a template (`node scripts/package-template.mjs <slug>`, locally) before pushing it.
+- `npm run build && npm run preview:web` serves `dist/` exactly as Vercel will, at http://localhost:4400.
+- Custom domain: add it in Vercel → Project → Domains, then create the CNAME it shows at your DNS host.
+
 ## What you can do
 
 | | |
