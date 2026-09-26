@@ -15,6 +15,7 @@
   "music": "Original 120 BPM loop (synthesized, included)",
   "posterFrame": 210,
   "order": 3,
+  "background": "#ECEBE7",
   "compositionId": "OpusViral",
   "width": 1440,
   "height": 1440,
@@ -122,6 +123,5 @@
     "Geist"
   ],
   "hash": "648feca092f0e0c2",
-  "generatedAt": "2026-09-26T10:01:59.605Z",
-  "background": "#ECEBE7"
+  "generatedAt": "2026-09-26T10:53:39.471Z"
 }

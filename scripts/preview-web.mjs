@@ -8,7 +8,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist");
 const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, "vercel.json"), "utf8"));
 const app = express();
+
 app.use((req, _res, next) => {
+  // like Vercel: a real file wins; rewrites only apply to paths that don't exist in dist/
+  const file = path.join(DIST, decodeURIComponent(req.path));
+  if (file.startsWith(DIST) && fs.existsSync(file) && fs.statSync(file).isFile()) return next();
   for (const r of cfg.rewrites) {
     const keys = [];
     const re = new RegExp("^" + r.source.replace(/:(\w+)/g, (_, k) => { keys.push(k); return "([^/]+)"; }) + "$");
@@ -17,6 +21,9 @@ app.use((req, _res, next) => {
   }
   next();
 });
+// the hosted MCP function, mounted the way Vercel runs it (Node req/res with a parsed JSON body)
+const mcp = (await import("../api/mcp.mjs")).default;
+app.all("/api/mcp", express.json(), (req, res) => mcp(req, res));
 app.use(express.static(DIST));
 const port = Number(process.env.PORT || 4400);
 app.listen(port, () => console.log(`dist/ as on Vercel → http://localhost:${port}`));

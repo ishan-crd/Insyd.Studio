@@ -2,7 +2,7 @@ import { registry } from "@project/sdk";
 import { useStore, sceneAt, type ScanElement, type ScanSound } from "../state/store";
 import { nextFrames, scanPlayerRef } from "./player";
 
-const cacheKey = () => { const d = useStore.getState().def!; return `insyd:scan9:${d.id}:${JSON.stringify(d.scenes)}:${__INSYD_PROJECT__}`; };
+const cacheKey = () => { const d = useStore.getState().def!; return `insyd:scan10:${d.id}:${JSON.stringify(d.scenes)}:${__INSYD_PROJECT__}`; };
 let running = false;
 let inventoryChanged = false;
 /** Called with the code index; if the set of editable ids changed since the last scan, the cache is stale. */
@@ -17,17 +17,23 @@ export const noteInventory = (locatorKeys: string[]) => {
 // Steps a *hidden* second Player through the composition and records when each Editable is on
 // screen — the visible player is never paused or seeked, so playback stays fully usable.
 // Elements are stored at their natural time (effective shift removed) so clips move as the user re-times them.
+// Editable values register as their component renders; a cached / processed scan skips the pass that
+// renders everything, so it carries the values too and they are registered up front.
+const restoreProps = (props: unknown) => { if (Array.isArray(props)) for (const p of props) registry.registerProp(p); };
+const snapshotProps = () => registry.getProps().map((p) => ({ id: p.id, value: p.value, meta: p.meta, owner: p.owner, kind: p.kind }));
+
 export const scanProject = async (step = 3, force = false) => {
   const s = useStore.getState();
   const player = scanPlayerRef.current;
   if (!player || !s.def || running) return;
   if (!force && !inventoryChanged) {
-    try { const cached = localStorage.getItem(cacheKey()); if (cached) { const c = JSON.parse(cached); if (c.elements && c.sounds) { s.setScan({ status: "done", progress: 1, elements: c.elements, sounds: c.sounds }); return; } } } catch {}
+    try { const cached = localStorage.getItem(cacheKey()); if (cached) { const c = JSON.parse(cached); if (c.elements && c.sounds && c.props) { restoreProps(c.props); s.setScan({ status: "done", progress: 1, elements: c.elements, sounds: c.sounds }); return; } } } catch {}
   }
   // A scan processed for exactly this source (shipped with a template, or saved by an earlier session)
   if (!force) {
     const r = await fetch("/api/project/scan").then((x) => x.json()).catch(() => null);
-    if (r?.scan?.elements && r.scan.sounds) {
+    if (r?.scan?.elements && r.scan.sounds && r.scan.props) {
+      restoreProps(r.scan.props);
       s.setScan({ status: "done", progress: 1, elements: r.scan.elements, sounds: r.scan.sounds });
       try { localStorage.setItem(cacheKey(), JSON.stringify(r.scan)); } catch {}
       return;
@@ -79,9 +85,10 @@ export const scanProject = async (step = 3, force = false) => {
     const elements = Array.from(found.values()).sort((a, b) => a.first - b.first || a.id.localeCompare(b.id));
     const soundList = Array.from(sounds.values()).sort((a, b) => a.natural - b.natural || a.id.localeCompare(b.id));
     useStore.getState().setScan({ status: "done", progress: 1, elements, sounds: soundList });
-    try { localStorage.setItem(cacheKey(), JSON.stringify({ elements, sounds: soundList })); } catch {}
+    const props = snapshotProps();
+    try { localStorage.setItem(cacheKey(), JSON.stringify({ elements, sounds: soundList, props })); } catch {}
     // keep it with the project (.studio/scan.json) so the next session — or a copy — skips the analysis
-    fetch("/api/project/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ elements, sounds: soundList }) }).catch(() => {});
+    fetch("/api/project/scan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ elements, sounds: soundList, props }) }).catch(() => {});
   } finally {
     running = false;
   }

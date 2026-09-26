@@ -49,6 +49,11 @@ explains how to run it, and each template can be downloaded as a zip.
   a template (`node scripts/package-template.mjs <slug>`, locally) before pushing it.
 - `npm run build && npm run preview:web` serves `dist/` exactly as Vercel will, at http://localhost:4400.
 - Custom domain: add it in Vercel → Project → Domains, then create the CNAME it shows at your DNS host.
+- The site also serves a read-only **marketplace MCP** at `/mcp` (a Vercel function, `api/mcp.mjs`):
+  `claude mcp add --transport http insyd-templates https://studio.insyd.in/mcp` gives any Claude
+  `list_templates`, `get_template` and `get_started`. Editing stays with Studio's local MCP.
+- Checks: `node scripts/web.mjs [url]` (the site in a browser) and `node scripts/mcp-hosted.mjs [url/mcp]`.
+- `node scripts/make-og.mjs` re-renders the share card (`public/og.png`) from the templates' posters.
 
 ## What you can do
 

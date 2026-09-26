@@ -55,4 +55,9 @@ templates.sort((a, b) => (a.order ?? 99) - (b.order ?? 99) || a.title.localeComp
 fs.mkdirSync(path.join(DIST, "catalog"), { recursive: true });
 fs.writeFileSync(path.join(DIST, "catalog", "templates.json"), JSON.stringify({ templates, projectsDir: null }));
 for (const t of templates) fs.writeFileSync(path.join(DIST, "catalog", `${t.slug}.json`), JSON.stringify(t));
+// 3. robots.txt + sitemap (the site is public; the API, downloads and media aren't pages)
+const SITE = process.env.SITE_URL || "https://studio.insyd.in";
+fs.writeFileSync(path.join(DIST, "robots.txt"), `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /downloads/\nSitemap: ${SITE}/sitemap.xml\n`);
+const pages = ["/", "/studio", ...templates.map((t) => `/templates/${t.slug}`)];
+fs.writeFileSync(path.join(DIST, "sitemap.xml"), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map((p) => `  <url><loc>${SITE}${p}</loc></url>`).join("\n")}\n</urlset>\n`);
 console.log(`dist/ ready — ${templates.length} templates`);

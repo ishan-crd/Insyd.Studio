@@ -122,13 +122,13 @@ export const mountTemplates = (app, { root, getProject, openProject }) => {
     const dir = getProject();
     const s = dir && readJson(path.join(dir, STUDIO_DIR, "scan.json"));
     if (!s || s.hash !== sourceHash(dir)) return res.json({ scan: null });
-    res.json({ scan: { elements: s.elements, sounds: s.sounds } });
+    res.json({ scan: s.props ? { elements: s.elements, sounds: s.sounds, props: s.props } : null }); // older scans (no values) are redone
   });
   app.post("/api/project/scan", async (req, res) => {
     const dir = getProject();
     if (!dir) return res.status(400).json({ error: "No project open" });
     await fsp.mkdir(path.join(dir, STUDIO_DIR), { recursive: true });
-    await fsp.writeFile(path.join(dir, STUDIO_DIR, "scan.json"), JSON.stringify({ hash: sourceHash(dir), elements: req.body.elements, sounds: req.body.sounds }));
+    await fsp.writeFile(path.join(dir, STUDIO_DIR, "scan.json"), JSON.stringify({ hash: sourceHash(dir), elements: req.body.elements, sounds: req.body.sounds, props: req.body.props ?? [] }));
     res.json({ ok: true });
   });
 };
