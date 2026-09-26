@@ -136,7 +136,7 @@ export const SoundClipView: React.FC<{ c: SoundClip; ppf: number; on: boolean; o
       title={`${c.label} · ${c.src} · starts f${c.start} · ${(c.frames / def.fps).toFixed(2)}s · vol ${Math.round(c.volume * 100)}%${c.speed !== 1 ? ` · ${+c.speed.toFixed(2)}×` : ""}${c.muted ? " · muted" : ""}${c.locked ? " · locked" : ""}${c.shift ? ` · shift ${c.shift}` : ""}${c.trimStart ? ` · trim ${c.trimStart}f` : ""} — drag to move · edges trim · right-click for more`}>
       <Wave url={c.url} color={color} frames={c.frames * c.speed} fps={def.fps} repeat={c.repeat} every={c.every} trimStart={c.trimStart} />
       {c.frames * ppf > 46 && <span className="alabel">{c.locked && <span className="lk"><Lock /></span>}{c.label}<span className="avol">{Math.round(c.volume * 100)}%</span>{c.speed !== 1 && <span className="avol">{+c.speed.toFixed(2)}×</span>}{c.shift !== 0 && <span className="delay">{c.shift > 0 ? "+" : ""}{c.shift}f</span>}</span>}
-      {c.repeat === 1 && !c.locked && c.frames * ppf >= 28 && <><div className="trim l" onPointerDown={(e) => trim(e, "l")} title="Trim start" /><div className="trim r" onPointerDown={(e) => trim(e, "r")} title="Trim end" /></>}
+      {c.repeat === 1 && !c.locked && <><div className={`trim l ${c.frames * ppf < 28 ? "out" : ""}`} onPointerDown={(e) => trim(e, "l")} title="Drag to trim the start" /><div className={`trim r ${c.frames * ppf < 28 ? "out" : ""}`} onPointerDown={(e) => trim(e, "r")} title="Drag to trim or extend the end" /></>}
     </div>
   );
 };

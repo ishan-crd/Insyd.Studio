@@ -54,9 +54,11 @@ export const AsciiField: React.FC<{
   speed?: number;
   /** vertical camera drift in rows per second */
   drift?: number;
+  /** frames added to the texture's clock (keeps its motion continuous when the clip starts mid-scene) */
+  phase?: number;
   style?: React.CSSProperties;
-}> = ({ mode, color = theme.colors.field, amount = 1, cell = 12, speed = 1, drift = 0, style }) => {
-  const frame = useCurrentFrame();
+}> = ({ mode, color = theme.colors.field, amount = 1, cell = 12, speed = 1, drift = 0, phase = 0, style }) => {
+  const frame = useCurrentFrame() + phase;
   const { fps } = useVideoConfig();
   const t = (frame / fps) * speed;
   const ref = useCanvas((ctx) => {

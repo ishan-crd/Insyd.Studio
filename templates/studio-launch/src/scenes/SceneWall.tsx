@@ -53,13 +53,13 @@ const Grid: React.FC<{ pick: number; hover: number; press: number }> = ({ pick, 
 export const SceneWall: React.FC = () => (
   <AbsoluteFill style={{ background: "#020303", fontFamily: theme.fonts.body }}>
     <At top={edit("wall.caption.top", 17, TOP)}><Editable id="wall.caption" label="Caption" kind="text" delay={24} trimOut={95}>
-      <TextClip text={useCopy("wall.caption", "Hundreds of launch templates")} anim={useAnimSpec("wall.caption.in", { delay: 0, preset: "bezier", duration: 12, easing: "linear" })} outDur={4} style={{ fontSize: edit("wall.caption.size", 58, SIZE) }} />
+      <TextClip text={useCopy("wall.caption", "Hundreds of launch templates")} anim={useAnimSpec("wall.caption.in", { delay: 0, preset: "bezier", duration: 12, easing: "linear" })} outDur={0} style={{ fontSize: edit("wall.caption.size", 58, SIZE) }} />
     </Editable></At>
     <Editable id="wall.grid" label="Template wall" display="fill" delay={0} trimOut={119}>
       <Grid pick={edit("wall.grid.pick", 7, { label: "Highlighted template", min: 0, max: 14, step: 1 })} hover={58} press={80} />
     </Editable>
     <Editable id="wall.cursor" label="Pointer" display="fill" delay={44} trimOut={59}>
-      <CursorClip from={[1700, 1000]} to={[1020, 648]} travel={28} press={36} hand />
+      <CursorClip from={[1700, 1000]} to={[1020, 650]} travel={28} press={36} hand />
     </Editable>
     <Sfx id="wall.sfx.whoosh1" name="whoosh" at={0} volume={0.5} />
     <Sfx id="wall.sfx.whoosh2" name="whoosh" at={6} volume={0.35} />

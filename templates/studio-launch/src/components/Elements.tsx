@@ -12,20 +12,24 @@ import { useClip, animProgress, type AnimSpec } from "../insyd";
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
-/** Exit progress 0 → 1 over the last `len` frames of the clip (0 for open-ended clips). */
-export const useExit = (len = 10) => {
+/** Exit progress over the last `len` frames of the clip, reaching 1 just after its last frame (0 for open-ended clips). */
+export const useExit = (len = 10, easing: (t: number) => number = theme.ease.in) => {
   const { frame, end } = useClip();
-  return end === Infinity ? 0 : interpolate(frame, [end - len, end], [0, 1], { easing: theme.ease.in, ...clamp });
+  return end === Infinity || len <= 0 ? 0 : interpolate(frame, [end + 1 - len, end + 1], [0, 1], { easing, ...clamp });
 };
 
-/** A glyph texture that fades in at the start of its clip and out at the end. */
-export const FieldClip: React.FC<{ mode: FieldMode; amount?: number; fadeIn?: number; fadeOut?: number; color?: string; cell?: number; speed?: number }> = ({
-  mode, amount = 1, fadeIn = 10, fadeOut = 10, color, cell, speed,
+/**
+ * A glyph texture that fades in over `fadeIn` frames at the start of its clip and is fully faded
+ * out right after its last frame. `levels` dims it for stretches of the clip: [from, to, level].
+ */
+export const FieldClip: React.FC<{ mode: FieldMode; amount?: number; fadeIn?: number; fadeOut?: number; levels?: Array<[number, number, number]>; color?: string; cell?: number; speed?: number; phase?: number }> = ({
+  mode, amount = 1, fadeIn = 10, fadeOut = 10, levels, color, cell, speed, phase,
 }) => {
-  const { frame } = useClip();
+  const { frame, end } = useClip();
   const inP = interpolate(frame, [0, fadeIn], [0, 1], { easing: theme.ease.out, ...clamp });
-  const out = useExit(fadeOut);
-  return <AsciiField mode={mode} amount={amount * inP * (1 - out)} color={color} cell={cell} speed={speed} />;
+  const outP = end === Infinity ? 1 : 1 - interpolate(frame, [end + 1 - fadeOut, end + 1], [0, 1], { easing: theme.ease.out, ...clamp });
+  const level = (levels ?? []).reduce((a, [from, to, l]) => (frame > from && frame < to ? a * l : a), 1);
+  return <AsciiField mode={mode} amount={amount * inP * outP * level} color={color} cell={cell} speed={speed} phase={phase} />;
 };
 
 /** A giant glyph word: assembles with its entrance animation, breaks apart at the end of its clip. */
@@ -36,11 +40,17 @@ export const WordClip: React.FC<{ text: string; size: number; y?: number; glyphs
 };
 
 /** Text that decodes in (its entrance: `anim.delay` + `anim.duration`) and scrambles out at the end of its clip. */
-export const TextClip: React.FC<{ text: string; anim: AnimSpec; outDur?: number; seed?: number; fade?: boolean; style?: React.CSSProperties }> = ({ text, anim, outDur = 8, seed, fade, style }) => {
+/**
+ * Text that decodes in (`anim.delay` + `anim.duration`) and, at the end of its clip, either
+ * scrambles out over `outDur` frames (finishing on its last frame), fades over `fade` frames, or —
+ * with outDur 0 — simply cuts.
+ */
+export const TextClip: React.FC<{ text: string; anim: AnimSpec; outDur?: number; tail?: number; seed?: number; fade?: number; style?: React.CSSProperties }> = ({ text, anim, outDur = 10, tail = 0, seed, fade = 0, style }) => {
   const { end } = useClip();
-  const out = useExit(fade ? 24 : 1);
-  const scramble = !fade && end !== Infinity ? end - outDur - 3 : undefined;
-  return <div style={{ opacity: fade ? 1 - out : 1 }}><Decode text={text} start={anim.delay ?? 0} dur={anim.duration ?? 14} out={scramble} outDur={outDur} seed={seed} style={style} /></div>;
+  const out = useExit(fade, (t) => t);
+  // `tail`: frames the scramble would have run past the clip's end (when a scene cut ends it early)
+  const scramble = !fade && outDur > 0 && end !== Infinity ? end + tail - outDur - 3 : undefined;
+  return <div style={{ opacity: 1 - out }}><Decode text={text} start={anim.delay ?? 0} dur={anim.duration ?? 14} out={scramble} outDur={outDur} seed={seed} style={style} /></div>;
 };
 
 /** Centre a clip vertically at `top`% of the frame. */

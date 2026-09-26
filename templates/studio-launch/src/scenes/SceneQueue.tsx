@@ -29,8 +29,8 @@ const Panel: React.FC<{ note: string; sub: string; first: number; every: number 
   const out = useExit(12);
   let phase = 0;
   return (
-    <AbsoluteFill style={{ alignItems: "center", justifyContent: "flex-start", paddingTop: 260, opacity: (1 - out) * interpolate(f, [0, 12], [0, 1], clamp), transform: `translateY(${panel - scroll}px)`, filter: out ? `blur(${out * 12}px)` : undefined }}>
-      <div style={{ width: 880, transform: "scale(1.3)", transformOrigin: "50% 0", background: "#1a1f1d", border: "1px solid #2b3230", borderRadius: 18, padding: "26px 30px", boxShadow: "0 60px 140px -40px rgba(0,0,0,1)", color: "#e8ecea", pointerEvents: "auto" }}>
+    <AbsoluteFill style={{ alignItems: "center", justifyContent: "flex-start", paddingTop: 260, opacity: (1 - out) * interpolate(f, [0, 12], [0, 1], { easing: theme.ease.out, ...clamp }), transform: `translateY(${panel - scroll}px)`, filter: out ? `blur(${out * 12}px)` : undefined }}>
+      <div style={{ width: 880, transform: "scale(1.3)", transformOrigin: "50% 50%", background: "#1a1f1d", border: "1px solid #2b3230", borderRadius: 18, padding: "26px 30px", boxShadow: "0 60px 140px -40px rgba(0,0,0,1)", color: "#e8ecea", pointerEvents: "auto" }}>
         <div style={{ fontSize: 24, fontWeight: 600, marginBottom: 18 }}>Edit queue</div>
         <div style={{ background: "linear-gradient(90deg, #3a1d52, #2c1a45)", borderRadius: 10, padding: "16px 20px", marginBottom: 20 }}>
           <div style={{ fontSize: 19, fontWeight: 500 }}>{note}</div>
@@ -66,7 +66,7 @@ export const SceneQueue: React.FC = () => (
         every={edit("queue.panel.every", 10, { label: "Frames between ticks", min: 4, max: 30, step: 1, unit: "f" })} />
     </Editable>
     <At top={edit("queue.after.top", 50, TOP)}><Editable id="queue.after" label="After line" kind="text" delay={124} trimOut={25}>
-      <TextClip text={useCopy("queue.after", "Claude edits it all, live in Studio...")} anim={useAnimSpec("queue.after.in", { delay: 0, preset: "bezier", duration: 12, easing: "linear" })} outDur={4} style={{ fontSize: edit("queue.after.size", 62, SIZE) }} />
+      <TextClip text={useCopy("queue.after", "Claude edits it all, live in Studio...")} anim={useAnimSpec("queue.after.in", { delay: 0, preset: "bezier", duration: 12, easing: "linear" })} outDur={0} style={{ fontSize: edit("queue.after.size", 62, SIZE) }} />
     </Editable></At>
     <Sfx id="queue.sfx.in" name="swish" at={0} volume={0.4} />
     <Sfx id="queue.sfx.tick1" name="tick" at={26} volume={0.35} lead={0} />

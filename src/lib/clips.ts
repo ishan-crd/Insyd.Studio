@@ -161,6 +161,19 @@ export const elementSource = (id: string) => useStore.getState().layout.elements
 export const isElementLocked = (id: string) => useStore.getState().transform(id).locked;
 /** natural (unshifted) length of an element's on-screen life, in frames */
 export const elementLength = (id: string) => { const e = elInfo(id); return e ? e.last - e.first + 1 : 30; };
+/**
+ * The furthest the end of a clip can be dragged, in the element's own frames: it stays mounted
+ * until its scene ends, so a clip whose end is set in the code (trimOut) can be extended to there.
+ */
+export const elementMaxEnd = (id: string, t: ElementTransform) => {
+  const e = elInfo(id); if (!e) return 29;
+  const s = useStore.getState();
+  const start = e.first + t.delay;
+  const sc = s.scenes().find((x) => start >= x.from && start < x.from + x.duration);
+  const natural = e.last - e.first;
+  if (!sc || t.trimOut === null || t.trimOut === undefined) return natural;
+  return Math.max(natural, sc.from + sc.duration - 1 - start);
+};
 
 const nextCloneId = (src: string) => {
   const els = useStore.getState().layout.elements;
@@ -273,7 +286,7 @@ export const trimElement = (id: string, base: ElementTransform, edge: "l" | "r",
   const len = elementLength(id);
   const end = base.trimOut ?? len - 1;
   if (edge === "l") useStore.getState().updateElement(id, { trimIn: Math.max(0, Math.min(end - 1, base.trimIn + deltaFrames)) }, commit);
-  else useStore.getState().updateElement(id, { trimOut: Math.max(base.trimIn + 1, Math.min(len - 1, end + deltaFrames)) }, commit);
+  else useStore.getState().updateElement(id, { trimOut: Math.max(base.trimIn + 1, Math.min(elementMaxEnd(id, base), end + deltaFrames)) }, commit);
 };
 
 /** Paste whatever is on the clipboard at the playhead. */

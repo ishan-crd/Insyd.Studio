@@ -16,7 +16,7 @@ const LogoClip: React.FC<{ word: string; by: string; size: number }> = ({ word, 
   const tile = spring({ frame: f, fps, config: { damping: 11, stiffness: 190, mass: 0.7 } });
   const wipe = interpolate(f, [10, 26], [0, 1], { easing: theme.ease.expo, ...clamp });
   const flash = interpolate(f, [0, 8], [0.45, 0], clamp);
-  const out = useExit(24);
+  const out = useExit(24, (t) => t);
   return (
     <>
       <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", opacity: 1 - out }}>
@@ -33,20 +33,20 @@ export const SceneEnd: React.FC = () => (
     <Editable id="end.bg" label="Haze texture" display="fill" delay={0} trimOut={299}>
       <FieldClip mode="haze" amount={edit("end.bg.amount", 0.9, { label: "Brightness", min: 0, max: 1.5, step: 0.05 })} fadeIn={30} fadeOut={24} />
     </Editable>
-    <At top={edit("end.l1.top", 50, TOP)}><Editable id="end.l1" label="Line 1" kind="text" delay={2} trimOut={26}>
+    <At top={edit("end.l1.top", 50, TOP)}><Editable id="end.l1" label="Line 1" kind="text" delay={2} trimOut={33}>
       <TextClip text={useCopy("end.l1", "You pick a template.")} anim={useAnimSpec("end.l1.in", { delay: 0, preset: "bezier", duration: 10, easing: "linear" })} outDur={6} style={{ fontSize: edit("end.l1.size", 56, SIZE) }} />
     </Editable></At>
-    <At top={edit("end.l2.top", 50, TOP)}><Editable id="end.l2" label="Line 2" kind="text" delay={30} trimOut={27}>
+    <At top={edit("end.l2.top", 50, TOP)}><Editable id="end.l2" label="Line 2" kind="text" delay={30} trimOut={33}>
       <TextClip text={useCopy("end.l2", "Claude makes it yours.")} anim={useAnimSpec("end.l2.in", { delay: 0, preset: "bezier", duration: 10, easing: "linear" })} outDur={4} seed={2} style={{ fontSize: edit("end.l2.size", 56, SIZE) }} />
     </Editable></At>
     <Editable id="end.logo" label="Logo lockup" kind="text" copyId="end.logo.word" display="fill" delay={60} trimOut={239}>
       <LogoClip word={useCopy("end.logo.word", "Studio")} by={useCopy("end.logo.by", "by Insyd")} size={edit("end.logo.size", 170, { label: "Size", min: 60, max: 320, step: 2, unit: "px" })} />
     </Editable>
-    <At top={edit("end.tag.top", 67, TOP)}><Editable id="end.tag" label="Tagline" kind="text" delay={90} trimOut={209}>
-      <TextClip text={useCopy("end.tag", "Launch videos, edited by Claude.")} anim={useAnimSpec("end.tag.in", { delay: 0, preset: "bezier", duration: 14, easing: "linear" })} fade style={{ fontSize: edit("end.tag.size", 38, SIZE), color: theme.colors.inkDim }} />
+    <At top={edit("end.tag.top", 76.5, TOP)}><Editable id="end.tag" label="Tagline" kind="text" delay={90} trimOut={209}>
+      <TextClip text={useCopy("end.tag", "Launch videos, edited by Claude.")} anim={useAnimSpec("end.tag.in", { delay: 0, preset: "bezier", duration: 14, easing: "linear" })} fade={24} style={{ fontSize: edit("end.tag.size", 38, SIZE), color: theme.colors.inkDim }} />
     </Editable></At>
-    <At top={edit("end.url.top", 74, TOP)}><Editable id="end.url" label="URL" kind="text" delay={104} trimOut={195}>
-      <TextClip text={useCopy("end.url", "insyd.studio")} anim={useAnimSpec("end.url.in", { delay: 0, preset: "bezier", duration: 12, easing: "linear" })} fade seed={4} style={{ fontSize: edit("end.url.size", 36, SIZE), fontFamily: theme.fonts.mono, letterSpacing: "0.06em" }} />
+    <At top={edit("end.url.top", 83.3, TOP)}><Editable id="end.url" label="URL" kind="text" delay={104} trimOut={195}>
+      <TextClip text={useCopy("end.url", "insyd.studio")} anim={useAnimSpec("end.url.in", { delay: 0, preset: "bezier", duration: 12, easing: "linear" })} fade={24} seed={4} style={{ fontSize: edit("end.url.size", 36, SIZE), fontFamily: theme.fonts.mono, letterSpacing: "0.06em" }} />
     </Editable></At>
     <Sfx id="end.sfx.d1" name="decode" at={2} volume={0.3} />
     <Sfx id="end.sfx.d2" name="decode" at={30} volume={0.3} />

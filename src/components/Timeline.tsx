@@ -296,12 +296,13 @@ export const Timeline: React.FC = () => {
             onPointerDown={(ev) => dragClip(ev, e.id, e.first, e.last)} onContextMenu={(ev) => ctxElement(ev, e.id)}
             onMouseEnter={() => store().setHover(e.id)} onMouseLeave={() => store().setHover(null)}
             title={`${e.label} · frames ${clipStart}–${clipStart + clipLen - 1}${t.trimIn || t.trimOut !== null ? ` · window ${t.trimIn}–${winEnd}` : ""}${t.locked ? " · locked" : ""} — drag to move · edges trim · right-click for more`}>
-            <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{t.locked && <Lock />}{e.label}</span>
+            <span className="clabel">{t.locked && <Lock />}{e.label}</span>
             {(t.speed ?? 1) !== 1 && <span className="delay" title="Speed">{+(t.speed ?? 1).toFixed(2)}×</span>}{(() => { const moved = t.delay - (codeDefaults[e.id]?.delay ?? 0); return moved !== 0 ? <span className="delay" title="Moved from its position in the code">{moved > 0 ? "+" : ""}{moved}f</span> : null; })()}
-            {!t.locked && clipLen * ppf >= 28 && <><div className="trim l" onPointerDown={(ev) => trimClip(ev, e.id, "l")} title="Trim start" /><div className="trim r" onPointerDown={(ev) => trimClip(ev, e.id, "r")} title="Trim end" /></>}
+            {!t.locked && <><div className={`trim l ${clipLen * ppf < 28 ? "out" : ""}`} onPointerDown={(ev) => trimClip(ev, e.id, "l")} title="Drag to trim the start" /><div className={`trim r ${clipLen * ppf < 28 ? "out" : ""}`} onPointerDown={(ev) => trimClip(ev, e.id, "r")} title="Drag to trim or extend the end" /></>}
             {anims.map((p) => {
               const spec = { ...(p.value as AnimSpec), ...((layout.props[p.id] as AnimSpec | undefined) ?? {}) };
-              const a = ((spec.delay ?? 0) - t.trimIn) * ppf, w = Math.max(4, animLength(spec, def.fps) * ppf);
+              const cw = Math.max(6, clipLen * ppf - 1);
+              const a = Math.max(0, ((spec.delay ?? 0) - t.trimIn) * ppf), w = Math.max(3, Math.min(animLength(spec, def.fps) * ppf, cw - a - 2));
               return (
                 <div key={p.id} className="anim" style={{ left: a, width: w }} title={`${p.meta.label ?? "Animation"} · starts +${spec.delay ?? 0}f · ${spec.preset ?? "smooth"} — drag to re-time`}
                   onPointerDown={(ev) => dragAnim(ev, p.id, spec, e.id, clipStart)} />

@@ -11,12 +11,12 @@ import { Editable, useCopy, useAnimSpec, edit, useClip, animProgress, type AnimS
 // The room is one clip that carries the camera: a slow push, then a fly into the display over its
 // last 50 frames. The screen content, the orb and the Studio UI are clips nested inside it, so they
 // move with the room — or can be re-timed on their own.
-const RoomClip: React.FC<{ power: number; flyIn: number; screen: React.ReactNode; orb: React.ReactNode }> = ({ power, flyIn, screen, orb }) => {
-  const { frame, end } = useClip();
+const RoomClip: React.FC<{ power: number; flyAt: number; flyIn: number; screen: React.ReactNode; orb: React.ReactNode }> = ({ power, flyAt, flyIn, screen, orb }) => {
+  const { frame } = useClip();
   const fadeIn = interpolate(frame, [0, 24], [0, 1], { easing: theme.ease.out, ...clamp });
   const pw = interpolate(frame, [power, power + 18], [0, 1], { easing: theme.ease.out, ...clamp });
   const push = interpolate(frame, [0, 180], [1.08, 1], { easing: theme.ease.out, ...clamp });
-  const p = end === Infinity ? 0 : interpolate(frame, [end - flyIn, end], [0, 1], { easing: theme.ease.expo, ...clamp });
+  const p = interpolate(frame, [flyAt, flyAt + flyIn], [0, 1], { easing: theme.ease.expo, ...clamp });
   const s = push * (1 + p * 0.975);
   const tx = 960 - 960 * s, ty = 440 + 100 * p - 440 * s;
   return (
@@ -31,10 +31,10 @@ const RoomClip: React.FC<{ power: number; flyIn: number; screen: React.ReactNode
 const OrbClip: React.FC<{ size: number }> = ({ size }) => {
   const { frame, end } = useClip();
   const e = end === Infinity ? 184 : end;
-  const k = [0, 70, e - 54, e];
+  const k = [0, 70, e - 53, e + 1];
   const ox = interpolate(frame, k, [2150, 1560, 1520, 960], { easing: theme.ease.inOut, ...clamp });
   const oy = interpolate(frame, k, [260, 330, 300 + breathe(frame, 12, 50), 440], { easing: theme.ease.inOut, ...clamp });
-  const sc = interpolate(frame, [e - 24, e], [1, 0.2], clamp);
+  const sc = interpolate(frame, [e - 23, e + 1], [1, 0.2], clamp);
   return <div style={{ position: "absolute", left: ox, top: oy, transform: `scale(${sc})` }}><Orb size={size} /></div>;
 };
 
@@ -54,11 +54,12 @@ export const SceneIntro: React.FC = () => (
   <AbsoluteFill style={{ background: "#000" }}>
     <Editable id="intro.room" label="Studio room (camera)" display="fill" delay={0} trimOut={239}>
       <RoomClip power={edit("intro.room.power", 98, { label: "Screen power-on (frame)", min: 0, max: 200, step: 1, unit: "f" })}
+        flyAt={edit("intro.room.flyAt", 186, { label: "Fly-in starts (frame)", min: 0, max: 239, step: 1, unit: "f" })}
         flyIn={edit("intro.room.flyIn", 50, { label: "Fly-in length", min: 10, max: 120, step: 1, unit: "f" })}
         screen={<>
-          <Editable id="intro.word" label="INTRODUCING…" kind="text" display="fill" delay={120} trimOut={41}>
+          <Editable id="intro.word" label="INTRODUCING…" kind="text" display="fill" delay={120} trimOut={49}>
             <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
-              <TextClip text={useCopy("intro.word", "INTRODUCING...")} anim={useAnimSpec("intro.word.in", { delay: 0, preset: "bezier", duration: 16, easing: "linear" })} outDur={1}
+              <TextClip text={useCopy("intro.word", "INTRODUCING...")} anim={useAnimSpec("intro.word.in", { delay: 0, preset: "bezier", duration: 16, easing: "linear" })} fade={8}
                 style={{ fontFamily: theme.fonts.mono, fontSize: edit("intro.word.size", 64, { label: "Size", min: 24, max: 140, step: 1, unit: "px" }), letterSpacing: "0.12em", color: "#d8d8d8" }} />
             </AbsoluteFill>
           </Editable>
